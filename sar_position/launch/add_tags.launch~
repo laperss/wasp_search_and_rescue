@@ -1,0 +1,14 @@
+<launch>
+  <node name="apriltag0_broadcaster" pkg="sar_position" type="add_tag.py" respawn="false" output="screen" >
+    <param name="ID" type="int" value="0" />
+    <param name="position" type="string" value="0 0 0" />
+  </node>
+  <node name="apriltag1_broadcaster" pkg="sar_position" type="add_tag.py" respawn="false" output="screen" >
+    <param name="ID" type="int" value="1" /> 
+    <param name="position" type="string" value="1 1 0" />
+  </node>
+  <node name="apriltag2_broadcaster" pkg="sar_position" type="add_tag.py" respawn="false" output="screen" >
+    <param name="ID" type="int" value="2" /> 
+    <param name="position" type="string" value="1 2 0" />
+  </node>
+</launch>

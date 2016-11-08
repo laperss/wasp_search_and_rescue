@@ -1,0 +1,8 @@
+<launch>
+  <group name="linnea" ns="linnea">
+    <include file="$(find drone_kth2)/launch/tum_package.launch" />
+  </group>
+  <group name="linnea2">
+    <include file="$(find drone_kth2)/launch/tum_package.launch" />
+  </group>
+</launch>
