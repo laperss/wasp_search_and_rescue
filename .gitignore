@@ -1,0 +1,13 @@
+*.o
+*.so
+*.7z
+*.gz
+*.iso
+*.zip
+*.log
+
+# EMACS
+*~
+*#
+
+drone_kth2/include/*
