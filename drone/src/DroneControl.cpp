@@ -1,7 +1,12 @@
+ /**
+ *  This file is a part the ardrone-search-and-rescue code 
+ *  and is written to work together with the tum_ardrone package.
+ *  Linnea Persson <laperss@kth.se> (KTH Royal Institute of Technology)
+ *  Code available at <https://github.com/laperss/ardrone_search_and_rescue>.
+ */ 
 #include "DroneControl.h"
 #include "HelperFunctions.h"
 #include <tf/transform_broadcaster.h>
-
 #include <sstream>
 #include <iostream>
 #include <string>
@@ -16,7 +21,6 @@ DroneControl::DroneControl() :
     led_anim_channel       = n.resolveName("ardrone/setledanimation");
     send_hover_channel     = n.resolveName("drone_autopilot/hover");
     command_channel        = n.resolveName("tum_ardrone/com");
-
     dronepose_channel      = n.resolveName("ardrone/predictedPose");
     globalpos_channel      = n.resolveName("ardrone/global_position");
     takeoff_channel        = n.resolveName("ardrone/takeoff");
