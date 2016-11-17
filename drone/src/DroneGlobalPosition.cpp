@@ -1,6 +1,7 @@
  /**
  *  This file is a part the ardrone-search-and-rescue code 
  *  and is written to work together with the tum_ardrone package.
+ *  It has been merged with code from the april_tag_detection code.
  *  Linnea Persson <laperss@kth.se> (KTH Royal Institute of Technology)
  *  Code available at <https://github.com/laperss/ardrone_search_and_rescue>.
  */
@@ -27,7 +28,7 @@ void wRo_to_euler(const Eigen::Matrix3d& wRo, double& yaw, double& pitch, double
 GlobalPosition::GlobalPosition() : 
     m_tagDetector(NULL),
     m_tagCodes(AprilTags::tagCodes36h11),
-    // UPDATE FOR BOTTOM CAM??
+    // UPDATE VALUES FOR BOTTOM CAM??
     m_width(640),
     m_height(360),
     m_tagSize(0.2),
@@ -50,14 +51,11 @@ GlobalPosition::GlobalPosition() :
     ROS_INFO("Init GlobalPosition()");
     m_tagDetector     = new AprilTags::TagDetector(m_tagCodes);
     bottomcam_sub     = it.subscribe(bottomcam_channel, 1, &GlobalPosition::ImageCallback,this);
-    globalpos_pub     = n.advertise<geometry_msgs::Twist>(globalpos_channel, 1);
-    tags_pub          = n.advertise<drone::object_pose>(tag_channel, 1);
     ptam_sub          = n.subscribe(dronepose_channel, 1, &GlobalPosition::PositionCallback,this);
 
+    globalpos_pub     = n.advertise<geometry_msgs::Twist>(globalpos_channel, 1);
+    tags_pub          = n.advertise<drone::object_pose>(tag_channel, 1);
     toggleCam_srv     = n.serviceClient<std_srvs::Empty>(togglecam_channel);
-
-    int forwardTimeMS = 1;
-    int downTimeMS = 0.1;
 }
 
 void GlobalPosition::UpdateLandmark(drone::object_pose state)
@@ -66,36 +64,20 @@ void GlobalPosition::UpdateLandmark(drone::object_pose state)
     {
 	landmark_found = true;
         latest_landmark = state.ID;
-	std::cout << "Tag " << state.ID << ": ("
-		  << state.pose.linear.z  << ", " 
-		  << state.pose.linear.y << ", "
-		  << state.pose.linear.x << ")\n";
-	std::cout << "- Update global position\n";
+	ROS_INFO("Tag %i: (%f,%f,%f)", 
+		 state.ID, state.pose.linear.z, state.pose.linear.y, state.pose.linear.x);
+	ROS_INFO("Update global position");
     }
-    // if (state.ID == 0)
-    // {
-    // 	current_landmark = &landmark_0;
-    // }
-    // else if (state.ID == 1)
-    // {
-    // 	current_landmark = &landmark_1;
-    // }    	
-
-    // else if (state.ID == 2)
-    // {
-    // 	current_landmark = &landmark_2;
-    // }   
-
     latest_observed_position = state;
     PTAM_latest_observed =  PTAM_position;
 
 }
 void GlobalPosition::PositionCallback(const tum_ardrone::filter_state state)
 {
-    // State angles given in degrees!
     PTAM_position.linear.x = state.x;
     PTAM_position.linear.y = state.y;
     PTAM_position.linear.z = state.z;
+    // State angles given in degrees!
     PTAM_position.angular.x = standardRad(state.roll*PI/180);
     PTAM_position.angular.y = standardRad(state.pitch*PI/180);
     PTAM_position.angular.z = standardRad(state.yaw*PI/180);
@@ -179,7 +161,7 @@ void GlobalPosition::BroadcastPosition()
     map_to_drone.setOrigin(tf::Vector3(PTAM_position.linear.x,PTAM_position.linear.y,PTAM_position.linear.z));
 
     br1.sendTransform(tf::StampedTransform(map_to_drone, ros::Time::now(), "PTAM_map",   "PTAM_drone"));
-    br2.sendTransform(tf::StampedTransform(transform.inverse(), ros::Time::now(), "PTAM_drone", "PTAM_latest_tag"));
+    //br2.sendTransform(tf::StampedTransform(transform.inverse(), ros::Time::now(), "PTAM_drone", "PTAM_latest_tag"));
 }
 
 

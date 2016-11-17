@@ -15,7 +15,7 @@
 #include "AprilTags/TagDetector.h"
 #include "AprilTags/Tag36h11.h"
 #include "tum_ardrone/filter_state.h"
-#include "tum_ardrone/SetCommand.h"
+//#include "tum_ardrone/SetCommand.h"
 
 class GlobalPosition
 {
@@ -53,15 +53,9 @@ private:
     void ImageCallback(const sensor_msgs::ImageConstPtr&  msg);
 
     // Variables 
-    geometry_msgs::Pose2D  landmark_0;
-    geometry_msgs::Pose2D  landmark_1;
-    geometry_msgs::Pose2D  landmark_2;
-    geometry_msgs::Pose2D * current_landmark;
-    drone::object_pose landmark; 
     geometry_msgs::Twist PTAM_position;
-    geometry_msgs::Twist position;
     geometry_msgs::Twist PTAM_latest_observed;  // position relative to the latest observed landmark
-    drone::object_pose latest_observed_position;  // position relative to the landmark at latest observation
+    drone::object_pose   latest_observed_position;  // position relative to the landmark at latest observation
 
     bool   landmark_found; 
     bool   landmark_visible; 
