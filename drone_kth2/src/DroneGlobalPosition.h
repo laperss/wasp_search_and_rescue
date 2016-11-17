@@ -39,13 +39,14 @@ private:
     
     // PUBLISHERS/SUBSCRIBERS/SERVICES
     ros::Publisher           globalpos_pub;
+    ros::Publisher           tags_pub;
     ros::Subscriber          ptam_sub;
-    ros::ServiceClient       sendCommand_srv;
     ros::ServiceClient       setReference_srv;   // the relative goto position for ardrone
 
     tum_ardrone::SetReference setReference_srvs;
 
     void UpdatePosition();
+    void BroadcastPosition();
     void BroadcastLandmark(wasp_custom_msgs::object_pose  state);
     void UpdateLandmark(wasp_custom_msgs::object_pose     state);
     void PositionCallback(const tum_ardrone::filter_state state);
@@ -90,9 +91,8 @@ private:
     std::string globalpos_channel;
     std::string dronepose_channel;
     std::string command_channel;
+    std::string tag_channel;
     std::string bottomcam_channel;
     std::string togglecam_channel;
-    std::string linnea_command_channel;
-
 
 };

@@ -44,10 +44,10 @@ GlobalPosition::GlobalPosition() :
     landmark_found(false)
 {
     // Names of the channels
-    linnea_command_channel = n.resolveName("set_command");
     command_channel        = n.resolveName("tum_ardrone/com");
     dronepose_channel      = n.resolveName("ardrone/predictedPose");
     globalpos_channel      = n.resolveName("ardrone/global_position");
+    tag_channel            = n.resolveName("ardrone/observed_tags");
     bottomcam_channel      = n.resolveName("/ardrone/bottom/image_raw");
     togglecam_channel      = n.resolveName("ardrone/togglecam");
 
@@ -55,9 +55,9 @@ GlobalPosition::GlobalPosition() :
     m_tagDetector     = new AprilTags::TagDetector(m_tagCodes);
     bottomcam_sub     = it.subscribe(bottomcam_channel, 1, &GlobalPosition::ImageCallback,this);
     globalpos_pub     = n.advertise<geometry_msgs::Twist>(globalpos_channel, 1);
+    tags_pub          = n.advertise<wasp_custom_msgs::object_pose>(tag_channel, 1);
     ptam_sub          = n.subscribe(dronepose_channel, 1, &GlobalPosition::PositionCallback,this);
 
-    sendCommand_srv   = n.serviceClient<tum_ardrone::SetCommand>(linnea_command_channel);
     toggleCam_srv     = n.serviceClient<std_srvs::Empty>(togglecam_channel);
     setReference_srv  = n.serviceClient<tum_ardrone::SetReference>("drone_autopilot/setReference");
 
@@ -71,11 +71,11 @@ void GlobalPosition::UpdateLandmark(wasp_custom_msgs::object_pose state)
     {
 	landmark_found = true;
         latest_landmark = state.ID;
-	// std::cout << "Tag " << state.ID << ": ("
-	// 	  << state.pose.linear.z  << ", " 
-	// 	  << state.pose.linear.y << ", "
-	// 	  << state.pose.linear.x << ")\n";
-	// std::cout << "- Update global position\n";
+	std::cout << "Tag " << state.ID << ": ("
+		  << state.pose.linear.z  << ", " 
+		  << state.pose.linear.y << ", "
+		  << state.pose.linear.x << ")\n";
+	std::cout << "- Update global position\n";
     }
     // if (state.ID == 0)
     // {
@@ -104,27 +104,6 @@ void GlobalPosition::PositionCallback(const tum_ardrone::filter_state state)
     PTAM_position.angular.x = standardRad(state.roll*PI/180);
     PTAM_position.angular.y = standardRad(state.pitch*PI/180);
     PTAM_position.angular.z = standardRad(state.yaw*PI/180);
-
-    static tf::TransformBroadcaster br;
-    tf::Transform transform;
-    transform.setOrigin(tf::Vector3(PTAM_position.linear.x - PTAM_latest_observed.linear.x, 
-				    PTAM_position.linear.y - PTAM_latest_observed.linear.y, 
-				    PTAM_position.linear.z - PTAM_latest_observed.linear.z));
-    tf::Quaternion quat;
-    quat.setRPY( standardRad(PTAM_position.angular.x - PTAM_latest_observed.angular.x), 
-	         standardRad(PTAM_position.angular.y - PTAM_latest_observed.angular.y), // should y,z be removed?
-		 -standardRad(PTAM_position.angular.z - PTAM_latest_observed.angular.z));
-    transform.setRotation(quat);
-    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "last_observed_tag", "drone"));
-
-    tf::Quaternion quat_PTAM;
-    tf::Transform map_to_drone;
-    quat_PTAM.setRPY(PTAM_position.angular.x, PTAM_position.angular.y, PTAM_position.angular.z);
-    map_to_drone.setRotation(quat_PTAM);
-    map_to_drone.setOrigin(tf::Vector3(state.x,state.y,state.z));
-    br.sendTransform(tf::StampedTransform(map_to_drone, ros::Time::now(), "PTAM_map",   "PTAM_drone"));
-    br.sendTransform(tf::StampedTransform(transform.inverse(), ros::Time::now(), "PTAM_drone", "PTAM_latest_tag"));
-
 
 }
 void GlobalPosition::ImageCallback(const sensor_msgs::ImageConstPtr& msg){
@@ -178,22 +157,43 @@ void GlobalPosition::GetApriltagLocation(const AprilTags::TagDetection& detectio
     location.pose.angular.x = 0 ;
     location.pose.angular.y = 0;
     location.pose.angular.z = orientation;
-    // location.pose.angular.x = roll;
-    // location.pose.angular.y = pitch;
-    // location.pose.angular.z = yaw;
-    // location.pose.angular.x = yaw;
-    // location.pose.angular.y = roll;
-    // location.pose.angular.z = pitch;
-
-    //std::cout << "2: ("<< roll*180/PI<<", " << pitch*180/PI <<", "<< yaw*180/PI <<")\n";
-    //std::cout << "o:  "<< orientation*180/PI <<"\n";
+    tags_pub.publish(location);
     UpdateLandmark(location);
   }
+
+void GlobalPosition::BroadcastPosition()
+{
+    static tf::TransformBroadcaster br;
+    static tf::TransformBroadcaster br1;
+    static tf::TransformBroadcaster br2;
+    static tf::TransformBroadcaster br3;
+    tf::Transform transform;
+    transform.setOrigin(tf::Vector3(PTAM_position.linear.x - PTAM_latest_observed.linear.x, 
+				    PTAM_position.linear.y - PTAM_latest_observed.linear.y, 
+				    PTAM_position.linear.z - PTAM_latest_observed.linear.z));
+    tf::Quaternion quat;
+    quat.setRPY( standardRad(PTAM_position.angular.x - PTAM_latest_observed.angular.x), 
+	         standardRad(PTAM_position.angular.y - PTAM_latest_observed.angular.y), // should y,z be removed?
+		 -standardRad(PTAM_position.angular.z - PTAM_latest_observed.angular.z));
+    transform.setRotation(quat);
+    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "last_observed_tag", "drone"));
+
+    tf::Quaternion quat_PTAM;
+    tf::Transform  map_to_drone;
+    quat_PTAM.setRPY(PTAM_position.angular.x, PTAM_position.angular.y, PTAM_position.angular.z);
+    map_to_drone.setRotation(quat_PTAM);
+    map_to_drone.setOrigin(tf::Vector3(PTAM_position.linear.x,PTAM_position.linear.y,PTAM_position.linear.z));
+
+    br1.sendTransform(tf::StampedTransform(map_to_drone, ros::Time::now(), "PTAM_map",   "PTAM_drone"));
+    //br2.sendTransform(tf::StampedTransform(map_to_drone.inverse(), ros::Time::now(), "drone",   "PTAM_origin"));
+    br3.sendTransform(tf::StampedTransform(transform.inverse(), ros::Time::now(), "PTAM_drone", "PTAM_latest_tag"));
+}
+
+
 
 void GlobalPosition::BroadcastLandmark(wasp_custom_msgs::object_pose state) {
     //tf::StampedTransform world_to_drone;
     //global_position_listener.lookupTransform("base", "ardrone_base_bottomcam", ros::Time(0), world_to_drone);
-
 
     static tf::TransformBroadcaster br;
     tf::Transform transform;
@@ -219,6 +219,8 @@ void GlobalPosition::Loop()
     ROS_INFO("Start loop");
     while (n.ok())
     {
+	BroadcastLandmark(latest_observed_position);
+	BroadcastPosition();
 	toggleCam_srv.call(toggleCam_srv_srvs);
 	look_up = false;
 	ros::Duration(0.15).sleep(); // It takes time for camera to switch
@@ -227,11 +229,12 @@ void GlobalPosition::Loop()
 
 	look_up = true;
 	lastLookUp = ros::Time::now();
-	while((ros::Time::now() - lastLookUp) < ros::Duration(2.0))
+	while((ros::Time::now() - lastLookUp) < ros::Duration(0.8))
 	{
 	    ros::spinOnce();
 	    loop_rate.sleep();
 	    BroadcastLandmark(latest_observed_position);
+	    BroadcastPosition();
 	}
     }
 }

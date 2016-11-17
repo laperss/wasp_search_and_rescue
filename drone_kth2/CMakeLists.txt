@@ -19,6 +19,9 @@ find_package(catkin REQUIRED COMPONENTS
   nodelet
   wasp_custom_msgs
   ardrone_autonomy
+  genmsg
+  actionlib_msgs
+  actionlib
 )
 
 ## Generate services in the 'srv' folder
@@ -26,10 +29,14 @@ add_service_files(FILES
 #   SendCommand.srv
 )
 
+#find_package(catkin REQUIRED genmsg actionlib_msgs actionlib)
+add_action_files(DIRECTORY action FILES DoCommand.action)
+generate_messages(DEPENDENCIES actionlib_msgs)
+
 catkin_package(
   INCLUDE_DIRS
   LIBRARIES apriltag_detector
-  CATKIN_DEPENDS image_transport roscpp sensor_msgs geometry_msgs tf cv_bridge message_runtime std_msgs nodelet apriltags wasp_custom_msgs
+  CATKIN_DEPENDS image_transport roscpp sensor_msgs geometry_msgs tf cv_bridge message_runtime std_msgs nodelet apriltags wasp_custom_msgs actionlib_msgs
   DEPENDS Eigen
 )
 
@@ -68,6 +75,16 @@ target_link_libraries(sar_drone ${catkin_LIBRARIES})
 add_dependencies(sar_drone sar_drone tum_ardrone_gencpp)
 
 
-add_executable(apriltag src/apriltags_detection.cpp)
-target_link_libraries(apriltag ${catkin_LIBRARIES})
-add_dependencies(apriltag apriltag)
+#add_executable(apriltag src/apriltags_detection.cpp)
+#target_link_libraries(apriltag ${catkin_LIBRARIES})
+#add_dependencies(apriltag apriltag)
+
+
+
+add_executable(do_dishes src/do_dishes.cpp)
+target_link_libraries(do_dishes ${catkin_LIBRARIES})
+add_dependencies(do_dishes do_dishes)
+
+add_executable(do_dishes_srv src/do_dishes_srv.cpp)
+target_link_libraries(do_dishes_srv ${catkin_LIBRARIES})
+add_dependencies(do_dishes_srv do_dishes_srv)
