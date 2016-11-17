@@ -1,0 +1,13 @@
+# Define the goal
+uint32 command_id  # Specify which command
+uint32 p1  # parameter 1
+uint32 p2  # parameter 2
+uint32 p3  # parameter 3
+uint32 p4  # parameter 4
+---
+# Define the result
+bool succeded
+---
+# Define a feedback message
+float32 percent_complete
+
