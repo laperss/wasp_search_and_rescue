@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(drone_kth2)
+project(drone)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -66,25 +66,16 @@ set(DRONE_CONTROL_HEADER_FILES
   src/DroneControl.h 
 )
 
-add_executable(control_drone src/control_drone_main.cpp ${DRONE_CONTROL_SOURCE_FILES} ${DRONE_CONTROL_HEADER_FILES})
-target_link_libraries(control_drone ${catkin_LIBRARIES})
-add_dependencies(control_drone control_drone tum_ardrone_gencpp)
+add_executable(control src/control_drone_main.cpp ${DRONE_CONTROL_SOURCE_FILES} ${DRONE_CONTROL_HEADER_FILES})
+target_link_libraries(control ${catkin_LIBRARIES})
+add_dependencies(control control tum_ardrone_gencpp)
 
-add_executable(sar_drone src/sar_drone_main.cpp ${DRONE_POS_SOURCE_FILES} ${DRONE_POS_HEADER_FILES})
-target_link_libraries(sar_drone ${catkin_LIBRARIES})
-add_dependencies(sar_drone sar_drone tum_ardrone_gencpp)
+add_executable(global_position src/global_position_main.cpp ${DRONE_POS_SOURCE_FILES} ${DRONE_POS_HEADER_FILES})
+target_link_libraries(global_position ${catkin_LIBRARIES})
+add_dependencies(global_position global_position tum_ardrone_gencpp)
 
 
 #add_executable(apriltag src/apriltags_detection.cpp)
 #target_link_libraries(apriltag ${catkin_LIBRARIES})
 #add_dependencies(apriltag apriltag)
 
-
-
-add_executable(do_dishes src/do_dishes.cpp)
-target_link_libraries(do_dishes ${catkin_LIBRARIES})
-add_dependencies(do_dishes do_dishes)
-
-add_executable(do_dishes_srv src/do_dishes_srv.cpp)
-target_link_libraries(do_dishes_srv ${catkin_LIBRARIES})
-add_dependencies(do_dishes_srv do_dishes_srv)

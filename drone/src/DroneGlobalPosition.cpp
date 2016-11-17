@@ -8,7 +8,6 @@
 #include "tum_ardrone/SetCommand.h"
 #include "wasp_custom_msgs/object_pose.h"
 #include "HelperFunctions.h"
-#include "landmark_location.h"
 #include "DroneGlobalPosition.h"
 #include "ros/callback_queue.h"
 #include <tf/transform_broadcaster.h>

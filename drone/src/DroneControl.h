@@ -17,7 +17,7 @@
 
 #include <actionlib/client/simple_action_client.h>  
 #include <tum_ardrone/do_commandAction.h>           
-#include <drone_kth2/DoCommandAction.h>           
+#include <drone/DoCommandAction.h>           
 
 class DroneControl
 {
@@ -32,7 +32,7 @@ private:
     ros::ServiceClient         set_reference_srv;
     ros::ServiceClient         set_led_anim_srv;
     ros::ServiceClient         hover_srv;
-    actionlib::SimpleActionClient<drone_kth2::DoCommandAction> drone_command;
+    actionlib::SimpleActionClient<drone::DoCommandAction> drone_command;
 
     tum_ardrone::SetReference  reference_srvs;
     tum_ardrone::SetCommand    send_command_srvs;
@@ -79,10 +79,10 @@ private:
     void ClearCommands();
 
 
-    void feedbackCb(const drone_kth2::DoCommandFeedbackConstPtr& feedback);
+    void feedbackCb(const drone::DoCommandFeedbackConstPtr& feedback);
     void activeCb();
     void doneCb(const actionlib::SimpleClientGoalState& state,
-			     const drone_kth2::DoCommandResultConstPtr& result);
+			     const drone::DoCommandResultConstPtr& result);
     std::string globalpos_channel;
     std::string dronepose_channel;
     std::string command_channel;

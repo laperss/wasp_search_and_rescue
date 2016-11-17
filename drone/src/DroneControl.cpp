@@ -179,7 +179,7 @@ void DroneControl::GoToCoordinate(const geometry_msgs::Pose2D lm)
 void DroneControl::GoTo(const geometry_msgs::Pose2D lm)
 {
     ros::spinOnce();
-    drone_kth2::DoCommandGoal goal; 
+    drone::DoCommandGoal goal; 
    //std::ostringstream ss;
     //tum_ardrone_msg.data = "setReference $POSE$";  // give commands relative to current position
     const tf::Vector3 diff = map_to_world(tf::Vector3(lm.x,lm.y,1.8));
@@ -209,6 +209,7 @@ void DroneControl::GoTo(const geometry_msgs::Pose2D lm)
 	    goal.p3 = 1.8;
 	    goal.p4 = 0;
 	    drone_command.sendGoal(goal);
+	    drone_command.waitForResult(ros::Duration(10.0)); // should take some seconds
 	    //std::cout << ss.str() << "\n";
 	    //tum_ardrone_pub.publish(msg);
 	}
@@ -313,7 +314,7 @@ void DroneControl::Loop()
     drone_command.waitForServer(); //will wait for infinite time
     ROS_INFO("Action server started, sending goal.");
     // send a goal to the action
-    drone_kth2::DoCommandGoal goal;
+    drone::DoCommandGoal goal;
     goal.command_id = 3;
     drone_command.sendGoal(goal, boost::bind(&DroneControl::doneCb, this, _1, _2),boost::bind(&DroneControl::activeCb, this) ,boost::bind(&DroneControl::feedbackCb, this, _1));
     bool finished_before_timeout = drone_command.waitForResult(ros::Duration(10.0)); // will come directly
@@ -381,7 +382,7 @@ void DroneControl::Loop()
 
 //Called once when the goal completes
 void DroneControl::doneCb(const actionlib::SimpleClientGoalState& state,
-			  const drone_kth2::DoCommandResultConstPtr& result)
+			  const drone::DoCommandResultConstPtr& result)
 {
   ROS_INFO("Finished in state [%s]", state.toString().c_str());
   ROS_INFO("Answer: %i", result->succeded);
@@ -395,7 +396,7 @@ void DroneControl::activeCb()
 }
 
 // Called every time feedback is received for the goal
-void DroneControl::feedbackCb(const drone_kth2::DoCommandFeedbackConstPtr& feedback)
+void DroneControl::feedbackCb(const drone::DoCommandFeedbackConstPtr& feedback)
 {
   ROS_INFO("Got Feedback of length %f", feedback->percent_complete);
 }
