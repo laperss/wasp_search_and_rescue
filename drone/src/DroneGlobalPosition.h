@@ -1,21 +1,18 @@
 #include "ros/ros.h"
+
+#include "std_srvs/Empty.h"
 #include "std_msgs/String.h"
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/Pose2D.h"
+#include "drone/object_pose.h"
+
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include "AprilTags/TagDetector.h"
 #include "AprilTags/Tag36h11.h"
 #include "tum_ardrone/filter_state.h"
 #include "tum_ardrone/SetCommand.h"
-#include "tum_ardrone/SetReference.h"
-#include "wasp_custom_msgs/object_pose.h"
-#include "HelperFunctions.h"
-#include "std_srvs/Empty.h"
 
-#include <sstream>
-#include <cstdlib>
-#include <map>
 
 
 class GlobalPosition
@@ -35,20 +32,17 @@ private:
     geometry_msgs::Twist PTAM_position;
     geometry_msgs::Twist position;
     geometry_msgs::Twist PTAM_latest_observed;  // position relative to the latest observed landmark
-    wasp_custom_msgs::object_pose latest_observed_position;  // position relative to the landmark at latest observation
+    drone::object_pose latest_observed_position;  // position relative to the landmark at latest observation
     
     // PUBLISHERS/SUBSCRIBERS/SERVICES
     ros::Publisher           globalpos_pub;
     ros::Publisher           tags_pub;
     ros::Subscriber          ptam_sub;
-    ros::ServiceClient       setReference_srv;   // the relative goto position for ardrone
-
-    tum_ardrone::SetReference setReference_srvs;
 
     void UpdatePosition();
     void BroadcastPosition();
-    void BroadcastLandmark(wasp_custom_msgs::object_pose  state);
-    void UpdateLandmark(wasp_custom_msgs::object_pose     state);
+    void BroadcastLandmark(drone::object_pose  state);
+    void UpdateLandmark(drone::object_pose     state);
     void PositionCallback(const tum_ardrone::filter_state state);
     void ImageCallback(const sensor_msgs::ImageConstPtr&  msg);
     void ImageProcess(cv::Mat& image_gray);
@@ -61,7 +55,7 @@ private:
     geometry_msgs::Pose2D  landmark_1;
     geometry_msgs::Pose2D  landmark_2;
     geometry_msgs::Pose2D * current_landmark;
-    wasp_custom_msgs::object_pose landmark; 
+    drone::object_pose landmark; 
 
     AprilTags::TagDetector*          m_tagDetector;
     AprilTags::TagCodes              m_tagCodes;
@@ -85,7 +79,6 @@ private:
     cv_bridge::CvImagePtr  cv_ptr;
     cv::Mat                image_new;
     cv::Mat                image_gray;
-    cv::Mat                last_image_gray;
 
     // Channel names
     std::string globalpos_channel;

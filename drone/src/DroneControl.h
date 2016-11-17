@@ -3,20 +3,13 @@
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/Pose2D.h"
 #include "tum_ardrone/filter_state.h"
-#include "tum_ardrone/SetReference.h"
 #include "tum_ardrone/SetCommand.h"
 #include "ardrone_autonomy/LedAnim.h"
-#include "wasp_custom_msgs/object_pose.h"
 #include <tf/transform_listener.h>
-#include "HelperFunctions.h"
 #include "std_srvs/Empty.h"
 
-#include <sstream>
-#include <cstdlib>
-#include <map>
 
 #include <actionlib/client/simple_action_client.h>  
-#include <tum_ardrone/do_commandAction.h>           
 #include <drone/DoCommandAction.h>           
 
 class DroneControl
@@ -29,14 +22,10 @@ private:
     enum {NONE, HOVER, TAG_FOLLOW, GOTO} flight_mode;
     ros::NodeHandle n;
 
-    ros::ServiceClient         set_reference_srv;
     ros::ServiceClient         set_led_anim_srv;
     ros::ServiceClient         hover_srv;
     actionlib::SimpleActionClient<drone::DoCommandAction> drone_command;
 
-    tum_ardrone::SetReference  reference_srvs;
-    tum_ardrone::SetCommand    send_command_srvs;
-    std_srvs::Empty            empty_srvs;
     ardrone_autonomy::LedAnim  led_anim;
 
     ros::Subscriber drone_globalpos_sub;
@@ -56,14 +45,11 @@ private:
 
     std_msgs::String      tum_ardrone_msg;
     tf::TransformListener global_position_listener;
-    tf::Transform  world_to_map;
-    tf::StampedTransform  world_to_map2;
-    //tf::Transform  map_to_drone;
-    tf::Transform  map_to_world;
-    tf::StampedTransform world_to_drone;
-    tf::Transform drone_to_world;
-    tf::StampedTransform map_to_drone;
-    tf::Transform world_to_goal;
+
+    tf::Transform         map_to_world;
+    tf::StampedTransform  world_to_drone;
+    tf::StampedTransform  map_to_drone;
+    tf::Transform         world_to_goal;
 
     void PositionCallback(const geometry_msgs::Twist state);
     void PTAMPositionCallback(const tum_ardrone::filter_state state);
@@ -73,16 +59,19 @@ private:
     void GoTo(const geometry_msgs::Pose2D);
     void GoToCoordinate(const geometry_msgs::Pose2D);
     void SetGoal(const geometry_msgs::Pose2D);
-    void PickUp(const geometry_msgs::Pose2D);
-    void Deliver(const geometry_msgs::Pose2D);
+    void PickUp();
+    void Deliver();
     void Land();
+    void Takeoff();
     void ClearCommands();
+    void StartServer();
 
 
     void feedbackCb(const drone::DoCommandFeedbackConstPtr& feedback);
     void activeCb();
     void doneCb(const actionlib::SimpleClientGoalState& state,
 			     const drone::DoCommandResultConstPtr& result);
+
     std::string globalpos_channel;
     std::string dronepose_channel;
     std::string command_channel;

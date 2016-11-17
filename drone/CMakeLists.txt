@@ -24,14 +24,22 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
 )
 
-## Generate services in the 'srv' folder
+## Generate messages in the 'msg' folder
+add_message_files(DIRECTORY msg
+  FILES
+  object_pose.msg
+)
+
 add_service_files(FILES
 #   SendCommand.srv
 )
 
 #find_package(catkin REQUIRED genmsg actionlib_msgs actionlib)
-add_action_files(DIRECTORY action FILES DoCommand.action)
-generate_messages(DEPENDENCIES actionlib_msgs)
+add_action_files(DIRECTORY action 
+  FILES 
+  DoCommand.action
+)
+generate_messages(DEPENDENCIES actionlib_msgs  geometry_msgs)
 
 catkin_package(
   INCLUDE_DIRS
