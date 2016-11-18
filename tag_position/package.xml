@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>sar_position</name>
+  <name>tag_position</name>
   <version>0.0.0</version>
   <description>The sar_position package</description>
   <maintainer email="laperss@kth.se">laperss</maintainer>
