@@ -6,22 +6,26 @@
  */
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "std_srvs/Empty.h"
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/Pose2D.h"
 #include "tum_ardrone/filter_state.h"
-#include "tum_ardrone/SetCommand.h"
+//#include "tum_ardrone/SetCommand.h"
 #include "ardrone_autonomy/LedAnim.h"
 #include <tf/transform_listener.h>
-#include "std_srvs/Empty.h"
 #include <actionlib/client/simple_action_client.h>  
+#include <actionlib/server/simple_action_server.h>  
 #include <drone/DoCommandAction.h>           
+#include <drone/DoPositionCommandAction.h>
+
+typedef actionlib::SimpleActionClient<drone::DoPositionCommandAction> SendPositionCommandServer; 
+typedef actionlib::SimpleActionClient<drone::DoCommandAction>         SendCommandServer; 
 
 class DroneControl
 {
 public:
     DroneControl();
     void Loop();
-    static pthread_mutex_t video_bottom_thread;
 private:
     enum {NONE, HOVER, TAG_FOLLOW, GOTO} flight_mode;
     ros::NodeHandle n;
@@ -29,7 +33,10 @@ private:
     // Services
     ros::ServiceClient         set_led_anim_srv;
     ros::ServiceClient         hover_srv;
-    actionlib::SimpleActionClient<drone::DoCommandAction> drone_command;
+
+    // Action servers 
+    SendCommandServer            send_command_srv;
+    SendPositionCommandServer    send_position_command_srv;
 
     // Publishers/Subscribers
     ros::Subscriber drone_globalpos_sub;
@@ -44,11 +51,10 @@ private:
     ardrone_autonomy::LedAnim  led_anim;
     geometry_msgs::Pose2D      goal_;
     geometry_msgs::Twist       position;          // global position
-    geometry_msgs::Twist       global_position;   // global position
     geometry_msgs::Twist       PTAM_position;     // position in PTAM frame
     std_msgs::String           tum_ardrone_msg;
-    tf::TransformListener      global_position_listener;
-    
+    tf::TransformListener      global_position_listener; 
+
     // Transforms
     tf::Transform         map_to_world;
     tf::StampedTransform  world_to_drone;
@@ -73,8 +79,11 @@ private:
     void Deliver();
     void Land();
     void Takeoff();
+    void Hover();
     void ClearCommands();
     void StartServer();
+    void StartControl();
+    void StopControl();
 
     // Channel names
     std::string globalpos_channel;
@@ -85,7 +94,5 @@ private:
     std::string toggleReset_channel;
     std::string land_channel;
     std::string takeoff_channel;
-
-
 };
 

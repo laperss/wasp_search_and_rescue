@@ -38,6 +38,7 @@ add_service_files(FILES
 add_action_files(DIRECTORY action 
   FILES 
   DoCommand.action
+  DoPositionCommand.action
 )
 generate_messages(DEPENDENCIES actionlib_msgs  geometry_msgs)
 
