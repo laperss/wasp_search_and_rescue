@@ -1,5 +1,9 @@
 # Define the goal
 uint32 command_id  # Specify which command
+float32 x          # parameter 1
+float32 y          # parameter 2
+float32 z          # parameter 3
+float32 yaw        # parameter 4
 ---
 # Define the result
 bool succeded
