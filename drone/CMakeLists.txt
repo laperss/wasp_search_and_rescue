@@ -17,7 +17,6 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   cmake_modules
   nodelet
-  wasp_custom_msgs
   ardrone_autonomy
   genmsg
   actionlib_msgs
@@ -84,7 +83,12 @@ target_link_libraries(global_position ${catkin_LIBRARIES})
 add_dependencies(global_position global_position tum_ardrone_gencpp)
 
 
-#add_executable(apriltag src/apriltags_detection.cpp)
-#target_link_libraries(apriltag ${catkin_LIBRARIES})
-#add_dependencies(apriltag apriltag)
+
+
+
+
+add_executable(search_and_rescue_test src/search_rescue_test.cpp)
+target_link_libraries(search_and_rescue_test ${catkin_LIBRARIES})
+add_dependencies(search_and_rescue_test search_and_rescue_test)
+
 
