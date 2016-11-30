@@ -15,18 +15,34 @@
 
 DroneControl::DroneControl() : 
     flight_mode(NONE),
-    send_command_srv("drone_autopilot/empty_command", true),
-    send_position_command_srv("drone_autopilot/position_command", true)
+    // Action services
+    send_command_client("drone_autopilot/empty_command", true),
+    send_position_command_client("drone_autopilot/position_command", true),
+    goto_srv("drone/goto", boost::bind(&DroneControl::Goto, this, _1), false),
+    moveby_srv("drone/moveby", boost::bind(&DroneControl::MoveBy, this, _1), false),
+    land_srv("drone/land", boost::bind(&DroneControl::Land, this, _1), false),
+    takeoff_srv("drone/takeoff", boost::bind(&DroneControl::Takeoff, this, _1), false),
+    hover_srv("drone/pickup", boost::bind(&DroneControl::PickUp, this, _1), false),
+    deliver_srv("drone/deliver", boost::bind(&DroneControl::Deliver, this, _1), false),
+    pickup_srv("drone/hover", boost::bind(&DroneControl::Hover, this, _1), false)
 {
+    moveby_srv.start();
+    goto_srv.start();
+    hover_srv.start();
+    takeoff_srv.start();
+    land_srv.start();
+    pickup_srv.start();
+    deliver_srv.start();
+
     // Names of the channels
     led_anim_channel       = n.resolveName("ardrone/setledanimation");
-    send_hover_channel     = n.resolveName("drone_autopilot/hover");
     command_channel        = n.resolveName("tum_ardrone/com");
     dronepose_channel      = n.resolveName("ardrone/predictedPose");
     globalpos_channel      = n.resolveName("ardrone/global_position");
     takeoff_channel        = n.resolveName("ardrone/takeoff");
     land_channel           = n.resolveName("ardrone/land");
     toggleReset_channel    = n.resolveName("ardrone/reset");
+    tags_channel           = n.resolveName("ardrone/observed_tags");
 
     // Publishers, subscribers
     tum_ardrone_pub     = n.advertise<std_msgs::String>(command_channel,50);
@@ -37,21 +53,11 @@ DroneControl::DroneControl() :
     ptam_sub            = n.subscribe(dronepose_channel, 1,&DroneControl::PTAMPositionCallback,this);
     drone_globalpos_sub = n.subscribe(globalpos_channel, 1,&DroneControl::PositionCallback,this);
     tum_ardrone_sub     = n.subscribe(command_channel, 1,&DroneControl::TUMArdroneCallback,this);
+    tags_sub            = n.subscribe(tags_channel, 1, &DroneControl::TagsCallback,this);
 
     // Services
-    hover_srv           = n.serviceClient<std_srvs::Empty>(send_hover_channel);
     set_led_anim_srv    = n.serviceClient<ardrone_autonomy::LedAnim>(led_anim_channel);
-
-    // Action services
-    // takeoff_ = new Server(n, "drone/takeoff", false);
-    // takeoff_->registerGoalCallback(boost::bind(&DroneControl::Takeoff, this));
-    // takeoff_->start();
-    // land_ = new Server(n, "drone/land", false);
-    // land_->registerGoalCallback(boost::bind(&DroneControl::Land, this));
-    // land_->start();
-    // goto_ = new Server(n, "drone/goto", false);
-    // goto_->registerGoalCallback(boost::bind(&DroneControl::GoTo, this));
-    // goto_->start();
+    set_max_control_srv = n.serviceClient<tum_ardrone::SetMaxControl>("drone_autopilot/setMaxControl");
 
     // WAIT FOR INITIAL POSITION
     bool has_position = false;
@@ -78,11 +84,17 @@ void DroneControl::TUMArdroneCallback(const std_msgs::String s)
     std::string strng = s.data;
     if (strng.substr(0,4) == "u c ")
     {
-	ROS_INFO("Feedback from drone");
+	//ROS_INFO("Feedback from drone");
 	int from = strng.find("Current");
 	int len   = strng.find("\n",strng.find("Current")+1,2)-from;
 //	std::cout <<from<<"\n-------" << strng.substr(from, len) << "\n--------"<<len<<"\n";
     }
+}
+
+void DroneControl::TagsCallback(const drone::object_pose object)
+{
+    tag_time_last_seen = ros::Time::now();
+    tag_id_last_seen = object.ID;
 }
 
 void DroneControl::PositionCallback(const geometry_msgs::Twist state)
@@ -126,7 +138,11 @@ void DroneControl::HoverLandmark(const geometry_msgs::Pose2D lm)
 
 void DroneControl::LookForLandmark()
 {
-    // not implemented
+    Hover();
+    while(!tag_visible)
+    {
+	ros::Duration(0.1).sleep();
+    }
 }
 
 void DroneControl::GoToCoordinate(const geometry_msgs::Pose2D lm)
@@ -157,12 +173,11 @@ void DroneControl::GoToCoordinate(const geometry_msgs::Pose2D lm)
     ROS_INFO("Landmark reached");
 }
 
-
 void DroneControl::GoTo(const geometry_msgs::Pose2D lm)
 {
     ros::spinOnce();
     drone::DoPositionCommandGoal goal; 
-    const tf::Vector3 diff = map_to_world(tf::Vector3(lm.x,lm.y,1.8));
+    const tf::Vector3 diff = map_to_world(tf::Vector3(lm.x,lm.y,1.9));
     goal.command_id = 1;
     // Do not send an obviously faulty message
     if ((diff[0] != diff[0]) && (diff[1] != diff[1]) && (diff[2] != diff[2]))
@@ -176,9 +191,9 @@ void DroneControl::GoTo(const geometry_msgs::Pose2D lm)
 	    goal.y   = diff[1];
 	    goal.z   = diff[2];
 	    goal.yaw = 0;
-	    send_position_command_srv.sendGoal(goal);
+	    send_position_command_client.sendGoal(goal);
 //(goal, boost::bind(&DroneControl::doneCb, this, _1, _2),boost::bind(&DroneControl::activeCb, this) ,boost::bind(&DroneControl::feedbackCb, this, _1));
-	    send_position_command_srv.waitForResult(ros::Duration(10.0)); // should not be that long
+	    send_position_command_client.waitForResult(ros::Duration(10.0)); // should not be that long
 	    ROS_INFO("Command ended");
 	}
 	else
@@ -201,24 +216,22 @@ void DroneControl::SetGoal(const geometry_msgs::Pose2D lm)
     br.sendTransform(tf::StampedTransform(world_to_goal, ros::Time::now(), "world", "goal"));
 } 
 
-
 void DroneControl::StartControl()
 {
     ROS_INFO("Start control");
     drone::DoCommandGoal goal;
     goal.command_id = 1;
-    send_command_srv.sendGoal(goal);
-    send_command_srv.waitForResult(ros::Duration(10.0)); 
+    send_command_client.sendGoal(goal);
+    send_command_client.waitForResult(ros::Duration(10.0)); 
 }
-
 
 void DroneControl::StopControl()
 {
     ROS_INFO("Stop control");
     drone::DoCommandGoal goal;
     goal.command_id = 2;
-    send_command_srv.sendGoal(goal);
-    send_command_srv.waitForResult(ros::Duration(10.0)); 
+    send_command_client.sendGoal(goal);
+    send_command_client.waitForResult(ros::Duration(10.0)); 
 }
 
 void DroneControl::Land()
@@ -226,8 +239,8 @@ void DroneControl::Land()
     ROS_INFO("Land");
     drone::DoCommandGoal goal;
     goal.command_id = 4;
-    send_command_srv.sendGoal(goal);
-    send_command_srv.waitForResult(ros::Duration(10.0)); 
+    send_command_client.sendGoal(goal);
+    send_command_client.waitForResult(ros::Duration(10.0)); 
 }
 
 void DroneControl::Takeoff()
@@ -235,8 +248,8 @@ void DroneControl::Takeoff()
     ROS_INFO("Takeoff");
     drone::DoCommandGoal goal;
     goal.command_id = 3;
-    send_command_srv.sendGoal(goal);
-    send_command_srv.waitForResult(ros::Duration(10.0)); 
+    send_command_client.sendGoal(goal);
+    send_command_client.waitForResult(ros::Duration(10.0)); 
 }
 
 void DroneControl::ClearCommands()
@@ -244,8 +257,8 @@ void DroneControl::ClearCommands()
     ROS_INFO("Clear commands");
     drone::DoCommandGoal goal;
     goal.command_id = 0;
-    send_command_srv.sendGoal(goal);
-    send_command_srv.waitForResult(ros::Duration(10.0)); 
+    send_command_client.sendGoal(goal);
+    send_command_client.waitForResult(ros::Duration(10.0)); 
 }
 
 void DroneControl::Hover()
@@ -253,18 +266,27 @@ void DroneControl::Hover()
     ROS_INFO("Hover");
     drone::DoCommandGoal goal;
     goal.command_id = 5;
-    send_command_srv.sendGoal(goal);
-    send_command_srv.waitForResult(ros::Duration(10.0)); 
+    send_command_client.sendGoal(goal);
+    send_command_client.waitForResult(ros::Duration(10.0)); 
 }
 
 
 void DroneControl::StartServer()
 {
     ROS_INFO("Waiting for action servers to start.");
-    send_command_srv.waitForServer();          // will wait for infinite time
-    send_position_command_srv.waitForServer(); // will wait for infinite time
+    send_command_client.waitForServer();          // will wait for infinite time
+    send_position_command_client.waitForServer(); // will wait for infinite time
     ROS_INFO("Action servers have started, ready to send goals.");
 }
+
+
+void DroneControl::SetMaxControl(double d)
+{
+    ROS_INFO("Setting maximum control to %f", d);
+    set_control.request.speed = d;
+    set_max_control_srv.call(set_control);
+}
+
 
 void DroneControl::PickUp()
 {
@@ -273,18 +295,17 @@ void DroneControl::PickUp()
     led_anim.request.freq = 1;
     led_anim.request.type = 4;
     led_anim.request.duration = 4;
-
     goal.command_id = 2;
     goal.x =  0;
     goal.y =  0;
-    goal.z = -0.8; 
+    goal.z = -1; 
     goal.yaw =  0;
-    send_position_command_srv.sendGoal(goal);
+    send_position_command_client.sendGoal(goal);
     set_led_anim_srv.call(led_anim);
-    send_position_command_srv.waitForResult(ros::Duration(10.0)); 
-    goal.z =  0.8; 
-    send_position_command_srv.sendGoal(goal);
-    send_position_command_srv.waitForResult(ros::Duration(10.0)); 
+    send_position_command_client.waitForResult(ros::Duration(10.0)); 
+    goal.z =  1; 
+    send_position_command_client.sendGoal(goal);
+    send_position_command_client.waitForResult(ros::Duration(10.0)); 
     ROS_INFO("Pickup finished.");
 } 
 
@@ -295,18 +316,17 @@ void DroneControl::Deliver()
     led_anim.request.freq = 1;
     led_anim.request.type = 4;
     led_anim.request.duration = 4;
-
     goal.command_id = 2;
     goal.x =  0;
     goal.y =  0;
-    goal.z = -0.8; 
+    goal.z = -1; 
     goal.yaw =  0;
-    send_position_command_srv.sendGoal(goal);
+    send_position_command_client.sendGoal(goal);
     set_led_anim_srv.call(led_anim);
-    send_position_command_srv.waitForResult(ros::Duration(10.0));
-    goal.z =  0.8; 
-    send_position_command_srv.sendGoal(goal);
-    send_position_command_srv.waitForResult(ros::Duration(10.0)); 
+    send_position_command_client.waitForResult(ros::Duration(10.0));
+    goal.z =  1; 
+    send_position_command_client.sendGoal(goal);
+    send_position_command_client.waitForResult(ros::Duration(10.0)); 
     ROS_INFO("Delivery finished.");
 } 
 
@@ -334,32 +354,78 @@ void DroneControl::Loop()
 	    ros::Duration(0.5).sleep();
 	}
     }
-    ros::Rate loop_rate(1);
+    ros::Rate loop_rate(10);
     ROS_INFO("Start Search and Rescue command loop");
-    geometry_msgs::Pose2D landmark;
-    geometry_msgs::Pose2D landmark2;
-    landmark.x = 0;
-    landmark.y = 0;
-    landmark.theta = 0;
-    landmark2.x = 0;
-    landmark2.y = 2.0;
-    landmark2.theta = 0;
-
-
     StartServer();
-    //ClearCommands();
+    ClearCommands();
     StartControl();
-    Takeoff();
-    GoToCoordinate(landmark);
-    GoToCoordinate(landmark2);
-    PickUp();
-    GoToCoordinate(landmark);
-    Deliver();
-    Land();
+    SetMaxControl(0.5);
+    ros::spin();
 
 }
 
 
+
+//::::::::::::::::::::::::::: GOAL EXECUTION ::::::::::::::::::::::::::
+
+void DroneControl::Goto(const drone::DoPositionCommandGoalConstPtr& goal)
+{
+    geometry_msgs::Pose2D position;
+    position.x = goal->x;
+    position.y = goal->y;
+    position.theta = goal->yaw;
+    GoToCoordinate(position);    
+}
+
+
+void DroneControl::MoveBy(const drone::DoPositionCommandGoalConstPtr& goal)
+{
+    geometry_msgs::Pose2D position;
+    position.x = goal->x;
+    position.y = goal->y;
+    position.theta = goal->yaw;
+    GoToCoordinate(position);    
+}
+
+void DroneControl::Land(const drone::DoCommandGoalConstPtr& goal)
+{
+    drone::DoCommandResult result_;
+    ROS_INFO("Drone Land");
+    Land();
+    land_srv.setSucceeded(result_);
+}
+
+void DroneControl::Takeoff(const drone::DoCommandGoalConstPtr& goal)
+{
+    drone::DoCommandResult result_;
+    ROS_INFO("Drone Takeoff");
+    Takeoff();
+    takeoff_srv.setSucceeded(result_);
+}
+
+void DroneControl::Hover(const drone::DoCommandGoalConstPtr& goal)
+{
+    drone::DoCommandResult result_;
+    ROS_INFO("Drone Hover");
+    Hover();
+    hover_srv.setSucceeded(result_);
+}
+
+void DroneControl::PickUp(const drone::DoCommandGoalConstPtr& goal)
+{
+    drone::DoCommandResult result_;
+    ROS_INFO("Drone: Pick up");
+    PickUp();
+    pickup_srv.setSucceeded(result_);
+}
+
+void DroneControl::Deliver(const drone::DoCommandGoalConstPtr& goal)
+{
+    drone::DoCommandResult result_;
+    ROS_INFO("Drone: Pick up");
+    Deliver();
+    deliver_srv.setSucceeded(result_);
+}
 
 //::::::::::::::::::::::::::: GOAL CALLBACKS :::::::::::::::::::::::::::
 
