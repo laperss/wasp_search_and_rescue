@@ -44,7 +44,7 @@ generate_messages(DEPENDENCIES actionlib_msgs  geometry_msgs)
 catkin_package(
   INCLUDE_DIRS
   LIBRARIES apriltag_detector
-  CATKIN_DEPENDS image_transport roscpp sensor_msgs geometry_msgs tf cv_bridge message_runtime std_msgs nodelet apriltags wasp_custom_msgs actionlib_msgs
+  CATKIN_DEPENDS image_transport roscpp sensor_msgs geometry_msgs tf cv_bridge message_runtime std_msgs nodelet apriltags actionlib_msgs
   DEPENDS Eigen
 )
 
