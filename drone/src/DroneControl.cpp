@@ -24,7 +24,8 @@ DroneControl::DroneControl() :
     takeoff_srv("drone/takeoff", boost::bind(&DroneControl::Takeoff, this, _1), false),
     hover_srv("drone/pickup", boost::bind(&DroneControl::PickUp, this, _1), false),
     deliver_srv("drone/deliver", boost::bind(&DroneControl::Deliver, this, _1), false),
-    pickup_srv("drone/hover", boost::bind(&DroneControl::Hover, this, _1), false)
+    pickup_srv("drone/hover", boost::bind(&DroneControl::Hover, this, _1), false),
+    next_action_id(0)
 {
     moveby_srv.start();
     goto_srv.start();
@@ -43,18 +44,21 @@ DroneControl::DroneControl() :
     land_channel           = n.resolveName("ardrone/land");
     toggleReset_channel    = n.resolveName("ardrone/reset");
     tags_channel           = n.resolveName("ardrone/observed_tags");
+    plan_channel           = n.resolveName("/kcl_rosplan/action_dispatch");
+    plan_pub_channel       = n.resolveName("/kcl_rosplan/action_feedback");
 
     // Publishers, subscribers
     tum_ardrone_pub     = n.advertise<std_msgs::String>(command_channel,50);
     takeoff_pub	        = n.advertise<std_msgs::Empty>(takeoff_channel,1);
     land_pub	        = n.advertise<std_msgs::Empty>(land_channel,1);
+    plan_pub	        = n.advertise<rosplan_dispatch_msgs::ActionFeedback>(plan_pub_channel,1);
     toggleReset_pub     = n.advertise<std_msgs::Empty>(toggleReset_channel,1);
 
     ptam_sub            = n.subscribe(dronepose_channel, 1,&DroneControl::PTAMPositionCallback,this);
     drone_globalpos_sub = n.subscribe(globalpos_channel, 1,&DroneControl::PositionCallback,this);
     tum_ardrone_sub     = n.subscribe(command_channel, 1,&DroneControl::TUMArdroneCallback,this);
     tags_sub            = n.subscribe(tags_channel, 1, &DroneControl::TagsCallback,this);
-
+    plan_sub            = n.subscribe(plan_channel, 1000, &DroneControl::PlanCallback,this);
     // Services
     set_led_anim_srv    = n.serviceClient<ardrone_autonomy::LedAnim>(led_anim_channel);
     set_max_control_srv = n.serviceClient<tum_ardrone::SetMaxControl>("drone_autopilot/setMaxControl");
@@ -425,6 +429,48 @@ void DroneControl::Deliver(const drone::DoCommandGoalConstPtr& goal)
     ROS_INFO("Drone: Pick up");
     Deliver();
     deliver_srv.setSucceeded(result_);
+}
+
+
+
+void DroneControl::PlanCallback(const rosplan_dispatch_msgs::ActionDispatch::ConstPtr& msg) 
+{
+    std::string wpID;
+    bool found = false;
+    std::stringstream ss;
+    //ss << "Name of action: " <<  msg->name;
+    //ROS_INFO(ss.str());
+    //double duration = msg->duration;
+    //diagnostic_msgs::KeyValue parameters = msg->parameters;
+    int n = msg->parameters.size();
+    int id = msg->action_id;
+    ROS_INFO("ROSPLAN ACTION ID: %i",id );
+    ROS_INFO("NEXT ACTION ID: %i",next_action_id );
+    if (id == next_action_id)
+    {
+	std::string key1 = msg->parameters[0].key;
+	std::string val1 = msg->parameters[0].value;
+	std::string key2 = msg->parameters[1].key;
+	std::string val2 = msg->parameters[1].value;
+	std::string key3 = msg->parameters[2].key;
+	std::string val3 = msg->parameters[2].value;
+	double dispatch_time = msg->dispatch_time;
+	//std::string name msg->name;
+	ROS_INFO("Got message, number of parameters: %i",n);
+	ROS_INFO("Key: %s, Value: %s",key1.c_str(), val1.c_str());
+	ROS_INFO("Key: %s, Value: %s",key2.c_str(), val2.c_str());
+	ROS_INFO("Key: %s, Value: %s",key3.c_str(), val3.c_str());
+	++ next_action_id;
+	ros::Duration(5).sleep();
+    }
+    if (id == next_action_id - 1)
+    {
+	rosplan_dispatch_msgs::ActionFeedback fb;
+	fb.action_id = msg->action_id;
+	fb.status = "action achieved";
+	ROS_INFO("PUBLISH FEEDBACK!!");
+	plan_pub.publish(fb);
+    }
 }
 
 //::::::::::::::::::::::::::: GOAL CALLBACKS :::::::::::::::::::::::::::

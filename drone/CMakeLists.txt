@@ -21,6 +21,10 @@ find_package(catkin REQUIRED COMPONENTS
   genmsg
   actionlib_msgs
   actionlib
+  rosplan_dispatch_msgs
+  rosplan_knowledge_msgs
+  rosplan_planning_system
+  diagnostic_msgs
 )
 
 ## Generate messages in the 'msg' folder

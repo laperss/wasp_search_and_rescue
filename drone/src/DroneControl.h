@@ -9,6 +9,7 @@
 #include "std_srvs/Empty.h"
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/Pose2D.h"
+#include "diagnostic_msgs/KeyValue.h"
 #include "tum_ardrone/filter_state.h"
 #include "tum_ardrone/SetMaxControl.h"
 #include "drone/object_pose.h"
@@ -18,6 +19,7 @@
 #include <actionlib/server/simple_action_server.h>  
 #include <drone/DoCommandAction.h>           
 #include <drone/DoPositionCommandAction.h>
+#include "rosplan_action_interface/RPActionInterface.h"
 
 typedef actionlib::SimpleActionClient<drone::DoPositionCommandAction> SendPositionCommandClient; 
 typedef actionlib::SimpleActionClient<drone::DoCommandAction>         SendCommandClient; 
@@ -64,24 +66,26 @@ private:
     ros::Subscriber drone_globalpos_sub;
     ros::Subscriber tum_ardrone_sub;
     ros::Subscriber ptam_sub;
+    ros::Subscriber plan_sub;
     ros::Subscriber tags_sub;
     ros::Publisher  tum_ardrone_pub;
     ros::Publisher  takeoff_pub;
     ros::Publisher  land_pub;
     ros::Publisher  toggleReset_pub;
+    ros::Publisher  plan_pub;
 
     // Variables
-    ardrone_autonomy::LedAnim        led_anim;
-    tum_ardrone::SetMaxControl       set_control;
-    geometry_msgs::Pose2D            goal_;
-    geometry_msgs::Twist             position;          // global position
-    geometry_msgs::Twist             PTAM_position;     // position in PTAM frame
-    std_msgs::String                 tum_ardrone_msg;
-    tf::TransformListener            global_position_listener; 
-    bool                             tag_visible;
-    ros::Time                        tag_time_last_seen;
-    int                              tag_id_last_seen;
-
+    ardrone_autonomy::LedAnim     led_anim;
+    tum_ardrone::SetMaxControl    set_control;
+    geometry_msgs::Pose2D         goal_;
+    geometry_msgs::Twist          position;          // global position
+    geometry_msgs::Twist          PTAM_position;     // position in PTAM frame
+    std_msgs::String              tum_ardrone_msg;
+    tf::TransformListener         global_position_listener; 
+    bool                          tag_visible;
+    ros::Time                     tag_time_last_seen;
+    int                           tag_id_last_seen;
+    int                           next_action_id;
     // Transforms
     tf::Transform         map_to_world;
     tf::StampedTransform  world_to_drone;
@@ -97,6 +101,12 @@ private:
     void activeCb();
     void doneCb(const actionlib::SimpleClientGoalState& state,
 			     const drone::DoCommandResultConstPtr& result);
+
+    // Rosplan
+    /* listen to and process action_dispatch topic */
+    void PlanCallback(const rosplan_dispatch_msgs::ActionDispatch::ConstPtr& msg);
+
+
     // Methods
     void HoverLandmark(const geometry_msgs::Pose2D);
     void LookForLandmark();
@@ -124,5 +134,7 @@ private:
     std::string land_channel;
     std::string takeoff_channel;
     std::string tags_channel;
+    std::string plan_channel;
+    std::string plan_pub_channel;
 };
 
