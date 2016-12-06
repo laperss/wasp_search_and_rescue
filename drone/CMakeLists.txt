@@ -78,6 +78,14 @@ set(DRONE_CONTROL_HEADER_FILES
   src/DroneControl.h 
 )
 
+# set header ans source files
+set(DRONE_PLAN_SOURCE_FILES       
+  src/DroneExecutePlan.cpp
+)
+set(DRONE_PLAN_HEADER_FILES    
+  src/DroneExecutePlan.h 
+)
+
 add_executable(control src/control_drone_main.cpp ${DRONE_CONTROL_SOURCE_FILES} ${DRONE_CONTROL_HEADER_FILES})
 target_link_libraries(control ${catkin_LIBRARIES})
 add_dependencies(control control tum_ardrone_gencpp)
@@ -86,6 +94,11 @@ add_executable(global_position src/global_position_main.cpp ${DRONE_POS_SOURCE_F
 target_link_libraries(global_position ${catkin_LIBRARIES})
 add_dependencies(global_position global_position tum_ardrone_gencpp)
 
+
+
+add_executable(execute_plan src/drone_execute_plan.cpp ${DRONE_PLAN_SOURCE_FILES} ${DRONE_PLAN_HEADER_FILES})
+target_link_libraries(execute_plan ${catkin_LIBRARIES})
+add_dependencies(execute_plan execute_plan)
 
 
 
