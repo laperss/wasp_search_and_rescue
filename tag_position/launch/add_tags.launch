@@ -7,8 +7,10 @@
     <param name="ID" type="int" value="1" /> 
     <param name="position" type="string" value="0 2.0 0" />
   </node>
-  <node name="apriltag2_broadcaster" pkg="tag_position" type="add_tag.py" respawn="false" output="screen" >
+  <node name="apriltag2_broadcaster" pkg="tag_position" type="tag_pos" respawn="false" output="screen" >
     <param name="ID" type="int" value="2" /> 
-    <param name="position" type="string" value="0 0 0" />
+    <param name="x" type="double" value="1.3" />
+    <param name="y" type="double" value="2.0" />
+    <param name="theta" type="double" value="0.0" />
   </node>
 </launch>
