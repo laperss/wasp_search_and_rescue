@@ -26,12 +26,11 @@ int main(int argc, char **argv)
   SendPositionCommandClient       send_moveby("drone/moveby", true);
   SendCommandClient               send_deliver("drone/deliver", true);
   SendCommandClient               send_pickup("drone/pickup", true);
+  SendCommandClient               send_tag_follow("drone/tag_follow", true);
 
 
   drone::DoCommandGoal            goal;
-  drone::DoPositionCommandGoal    position1;
-  drone::DoPositionCommandGoal    position2;
-  drone::DoPositionCommandGoal    position3;
+  drone::DoPositionCommandGoal    pos0,pos2,pos4,pos1,pos6,pos9, pos10;
 
   send_takeoff.waitForServer();
   ROS_INFO("Takeoff service found");
@@ -42,63 +41,79 @@ int main(int argc, char **argv)
   send_goto.waitForServer();
   ROS_INFO("Goto service found");
   send_moveby.waitForServer();
-  ROS_INFO("Moveby service found");
+   ROS_INFO("Moveby service found");
+  send_pickup.waitForServer();
+   ROS_INFO("Pickup service found");
 
-  position1.x = 0;
-  position1.y = 0;
-  position1.z = 1.8;
-  position1.yaw = 0;
+  pos1.x = -1.13;
+  pos1.y = 1.0;
+  pos1.z = 1.5;
+  pos1.yaw = 0;
 
-  position2.x = 0;
-  position2.y = 2;
-  position2.z = 1.8;
-  position2.yaw = 0;
+  pos9.x = 0;
+  pos9.y = 0;
+  pos9.z = 1.5;
+  pos9.yaw = 0;
 
-  position3.x = 1.3;
-  position3.y = 2;
-  position3.z = 1.8;
-  position3.yaw = 0;  
+  pos2.x = -0.88;
+  pos2.y = 4.39;
+  pos2.z = 1.5;
+  pos2.yaw = 0;
 
-  send_goto.sendGoal(position1);
-  ROS_INFO("Send goto");
-  send_goto.waitForResult(ros::Duration(20.0));
-  
-  send_goto.sendGoal(position2);
-  ROS_INFO("Goto");
-  send_goto.waitForResult(ros::Duration(20.0));
+  pos4.x = 0.30;
+  pos4.y = 5.06;
+  pos4.z = 1.5;
+  pos4.yaw = 0;
 
-  send_pickup.sendGoal(goal);
-  ROS_INFO("Pickup");
-  send_pickup.waitForResult(ros::Duration(20.0));
+  pos6.x = -1.86;
+  pos6.y = 4.72;
+  pos6.z = 1.5;
+  pos6.yaw = 0;
 
-  send_goto.sendGoal(position3);
-  ROS_INFO("Goto");
-  send_goto.waitForResult(ros::Duration(20.0));
+  send_goto.sendGoal(pos9);
+  ROS_INFO("Send goto 9");
+  send_goto.waitForResult(ros::Duration(30.0));
+  goal.command_id = 9;
+  ROS_INFO("Tag Follow 9");
+  send_tag_follow.sendGoal(goal);
+  send_tag_follow.waitForResult(ros::Duration(20.0));
+
+  ros::Duration(1).sleep();
+
+  // ROS_INFO("Pickup");
+  // send_deliver.sendGoal(goal);
+  // send_deliver.waitForResult(ros::Duration(20.0));
+
+  send_goto.sendGoal(pos1);
+  ROS_INFO("Send goto 1");
+  send_goto.waitForResult(ros::Duration(30.0));
+
+  goal.command_id = 1;
+  ROS_INFO("Tag Follow 1");
+  send_tag_follow.sendGoal(goal);
+  send_tag_follow.waitForResult(ros::Duration(20.0));
+
+  ros::Duration(1).sleep();
 
   send_deliver.sendGoal(goal);
   ROS_INFO("Deliver");
   send_deliver.waitForResult(ros::Duration(20.0));
 
 
-  send_goto.sendGoal(position2);
-  ROS_INFO("Goto");
+
+  send_goto.sendGoal(pos9);
+  ROS_INFO("Send goto 9");
   send_goto.waitForResult(ros::Duration(20.0));
 
-  send_pickup.sendGoal(goal);
-  ROS_INFO("Pickup");
-  send_pickup.waitForResult(ros::Duration(20.0));
-
-  send_goto.sendGoal(position3);
-  ROS_INFO("Goto");
-  send_goto.waitForResult(ros::Duration(20.0));
-
+  goal.command_id = 9;
+  ROS_INFO("Tag Follow 9");
+  send_tag_follow.sendGoal(goal);
+  send_tag_follow.waitForResult(ros::Duration(20.0));
+  ros::Duration(1).sleep();
   send_deliver.sendGoal(goal);
   ROS_INFO("Deliver");
   send_deliver.waitForResult(ros::Duration(20.0));
 
-  send_goto.sendGoal(position1);
-  ROS_INFO("Send goto");
-  send_goto.waitForResult(ros::Duration(20.0));
 
 
   send_land.sendGoal(goal);
