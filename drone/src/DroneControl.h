@@ -106,7 +106,6 @@ private:
     ros::Publisher  direct_cmd_pub;
 
     // Variables
-    ardrone_autonomy::LedAnim     led_anim;
     tum_ardrone::SetMaxControl    set_control;
     geometry_msgs::Pose2D         goal_;
     drone::object_pose            tag_relative_position;
@@ -127,21 +126,14 @@ private:
     tf::Transform         world_to_goal;
 
     // Callbacks
+    //   global position from global_position_node
     void PositionCallback(const geometry_msgs::Twist state);
+    //   current PTAM state from the TUM node
     void PTAMPositionCallback(const tum_ardrone::filter_state state);
+    //   tags currently in the view of the downfacing camera
     void TagsCallback(const drone::object_pose);
-    void feedbackCb(const drone::DoCommandFeedbackConstPtr& feedback);
-    void activeCb();
-    void doneCb(const actionlib::SimpleClientGoalState& state,
-			     const drone::DoCommandResultConstPtr& result);
 
-    // Rosplan
-    /* listen to and process action_dispatch topic */
-    void PlanCallback(const rosplan_dispatch_msgs::ActionDispatch::ConstPtr& msg);
-
-
-    // Methods
-    // Change functions so that they do not loop the TUM script!!
+    // Functions
     bool HoverLandmark(int);
     void LookForLandmark();
     void GoTo(const geometry_msgs::Pose2D);
@@ -160,18 +152,21 @@ private:
     void StartControl();
     void StopControl();
     void AutoInit();
+    void LedAnimation();
     void SetMaxControl(double d);
 
     // Channel names
     std::string globalpos_channel;
-    std::string dronepose_channel;
+    std::string ptam_channel;
     std::string command_channel;
     std::string led_anim_channel;
     std::string send_hover_channel;
-    std::string toggleReset_channel;
+    std::string toggle_reset_channel;
     std::string land_channel;
     std::string takeoff_channel;
     std::string tags_channel;
     std::string direct_cmd_channel;
+    std::string camera_mode_channel;
+    std::string max_ctrl_channel;
 };
 

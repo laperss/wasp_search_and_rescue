@@ -43,90 +43,67 @@ DroneControl::DroneControl() :
     // Names of the channels
     led_anim_channel       = n.resolveName("ardrone/setledanimation");
     command_channel        = n.resolveName("tum_ardrone/com");
-    dronepose_channel      = n.resolveName("ardrone/predictedPose");
+    ptam_channel           = n.resolveName("ardrone/predictedPose");
     globalpos_channel      = n.resolveName("ardrone/global_position");
     takeoff_channel        = n.resolveName("ardrone/takeoff");
     land_channel           = n.resolveName("ardrone/land");
     direct_cmd_channel     = n.resolveName("/cmd_vel");
-    toggleReset_channel    = n.resolveName("ardrone/reset");
+    toggle_reset_channel   = n.resolveName("ardrone/reset");
     tags_channel           = n.resolveName("drone/observed_tags");
+    max_ctrl_channel       = n.resolveName("drone_autopilot/setMaxControl");
+    camera_mode_channel    = n.resolveName("drone/camera_mode");
 
 
     // Publishers, subscribers
     tum_ardrone_pub   = n.advertise<std_msgs::String>(command_channel,50);
     takeoff_pub	      = n.advertise<std_msgs::Empty>(takeoff_channel,1);
     land_pub	      = n.advertise<std_msgs::Empty>(land_channel,1);
-    toggleReset_pub   = n.advertise<std_msgs::Empty>(toggleReset_channel,1);
+    toggleReset_pub   = n.advertise<std_msgs::Empty>(toggle_reset_channel,1);
     direct_cmd_pub    = n.advertise<geometry_msgs::Twist>(direct_cmd_channel,1);
-    toggleCam_srv     = n.serviceClient<std_srvs::Empty>("ardrone/togglecam");
 
-
-    ptam_sub            = n.subscribe(dronepose_channel, 1,&DroneControl::PTAMPositionCallback,this);
+    ptam_sub            = n.subscribe(ptam_channel, 1,&DroneControl::PTAMPositionCallback,this);
     drone_globalpos_sub = n.subscribe(globalpos_channel, 1,&DroneControl::PositionCallback,this);
     tags_sub            = n.subscribe(tags_channel, 1, &DroneControl::TagsCallback,this);
 
     // Services
     set_led_anim_srv      = n.serviceClient<ardrone_autonomy::LedAnim>(led_anim_channel);
-    set_max_control_srv   = n.serviceClient<tum_ardrone::SetMaxControl>("drone_autopilot/setMaxControl");
-    camera_setting_srv    = n.serviceClient<drone::StringService>("drone/camera_mode");
+    set_max_control_srv   = n.serviceClient<tum_ardrone::SetMaxControl>(max_ctrl_channel);
+    camera_setting_srv    = n.serviceClient<drone::StringService>(camera_mode_channel);
+    toggleCam_srv         = n.serviceClient<std_srvs::Empty>("ardrone/togglecam");
 
-
-    // WAIT FOR INITIAL POSITION
-    bool has_position = false;
-    while (!has_position)
-    {
-	try {
-	    global_position_listener.lookupTransform("world", "drone", ros::Time(0), world_to_drone);
-	    position.linear.x = world_to_drone.getOrigin().getX();
-	    position.linear.y = world_to_drone.getOrigin().getY();
-	    position.linear.z = world_to_drone.getOrigin().getZ();
-	    has_position = true;
-	    ROS_INFO("Drone position found");
-	}
-	catch (tf::TransformException ex) {
-	    ROS_ERROR("%s", ex.what());
-	    ros::Duration(0.5).sleep();
-	}
-    }
 }
 
 void DroneControl::TagsCallback(const drone::object_pose object)
 {
-    ROS_INFO("tag callback");
     tag_visible = true;
     tag_time_last_seen = ros::Time::now();
     tag_id_last_seen = object.ID;
     tag_relative_position = object;
     if (flight_mode==TAG_FOLLOW)
     {
-	if (tag_visible)
-	{
-	    ControlCommand cmd;
-	    cmd.roll = -0.1*tag_relative_position.pose.linear.y;
-	    cmd.pitch = 0.1*tag_relative_position.pose.linear.z;
-	    cmd.gaz = (1-tag_relative_position.pose.linear.x)*0.1;
-	    ROS_INFO("GAZ: %f", cmd.gaz);
-	    SendControlToDrone(cmd);
-	}
-	else
-	{
-	    ROS_INFO("ERROR HOVER LANDMARK:");
-	}
+	ControlCommand cmd;
+	cmd.roll = -0.1*tag_relative_position.pose.linear.y;
+	cmd.pitch = 0.1*tag_relative_position.pose.linear.z;
+	cmd.gaz = (1-tag_relative_position.pose.linear.x)*0.1;
+	ROS_INFO("GAZ: %f", cmd.gaz);
+	SendControlToDrone(cmd);
     }
 
 }
 
 void DroneControl::PositionCallback(const geometry_msgs::Twist state)
 {
+    // Save the global position of the drone
     position = state;
 }
 
 void DroneControl::PTAMPositionCallback(const tum_ardrone::filter_state state)
 {
-
+    // Save the position in PTAM frame of reference
     PTAM_position.linear.x = state.x;
     PTAM_position.linear.y = state.y;
     PTAM_position.linear.z = state.z;
+    // Map between global posision and PTAM position
     try {
 	global_position_listener.lookupTransform("world", "drone", ros::Time(0), world_to_drone);
 	position.linear.x = world_to_drone.getOrigin().getX();
@@ -134,20 +111,18 @@ void DroneControl::PTAMPositionCallback(const tum_ardrone::filter_state state)
 	position.linear.z = world_to_drone.getOrigin().getZ();
     }
     catch (tf::TransformException ex) {
-	ros::Duration(0.5).sleep();
+	ros::Duration(0.2).sleep();
     }
     try {
-	global_position_listener.lookupTransform("PTAM_map", "PTAM_drone", ros::Time(0), map_to_drone);
+	global_position_listener.lookupTransform("PTAM_map", 
+						 "PTAM_drone", ros::Time(0), map_to_drone);
     }
     catch (tf::TransformException ex) {
-	ros::Duration(0.5).sleep();
+	ros::Duration(0.2).sleep();
     }
     map_to_world = map_to_drone*world_to_drone.inverse();
 }
-    
-    
-
-    
+ 
 //::::::::::::::::::::::::::: DRONE FUNCTIONS :::::::::::::::::::::::::::
 
 bool DroneControl::HoverLandmark(int id)
@@ -155,34 +130,8 @@ bool DroneControl::HoverLandmark(int id)
     ROS_INFO("HOVER LANDMARK: %i", id);
     flight_mode = TAG_FOLLOW;
     StopControl();
-    std_srvs::Empty msg;
-    // ros::Duration(0.15).sleep();
-    // while (ros::Time::now() < start_time + ros::Duration(5))
-    // {	
-    // 	if (tag_visible)
-    // 	{
-    // 	    if(id == tag_relative_position.ID)
-    // 	    {
-    // 		ControlCommand cmd;
-    // 		cmd.roll = -0.1*tag_relative_position.pose.linear.y;
-    // 		cmd.pitch = 0.1*tag_relative_position.pose.linear.z;
-    //    		SendControlToDrone(cmd);
-    // 	    }
-    // 	}
-    // 	else
-    // 	{
-    // 	    ROS_INFO("ERROR HOVER LANDMARK: %i", id);
-    // 	    return false;
-    // 	}
-    // 	ROS_INFO("spinonce");
-    // 	ros::spinOnce();
-    // 	ros::Duration(0.05).sleep();
-    // }
-    // ROS_INFO("END HOVER LANDMARK: %i", id);
-    // StartControl();
     return true;
 }
-
 
 void DroneControl::DoControl()
 {
@@ -215,7 +164,6 @@ void DroneControl::DoControl()
 
 }
 
-
 void DroneControl::SendControlToDrone(ControlCommand cmd)
 {
     ROS_INFO("SEND CONTROL TO DRONE: %f, %f", cmd.roll, cmd.pitch);
@@ -226,8 +174,6 @@ void DroneControl::SendControlToDrone(ControlCommand cmd)
     cmdT.linear.y = -cmd.roll;
     cmdT.angular.x = cmdT.angular.y = 0;
     direct_cmd_pub.publish(cmdT);
-    //lastSentControl = cmd;
-    //xlastControlSentMS = getMS(ros::Time::now());
 }
 
 void DroneControl::LookForLandmark()
@@ -239,40 +185,6 @@ void DroneControl::LookForLandmark()
 	ros::spinOnce();
     }
 }
-
-// void DroneControl::GoToCoordinate(const geometry_msgs::Pose2D lm)
-// {
-//     ros::Time start_time = ros::Time::now();
-//     ROS_INFO("Go to position: %f, %f, %f", lm.x, lm.y, 1.8);
-//     ros::Rate loop_rate(0.5);
-//     //SetGoal(lm);
-//     tf::Vector3 diff(lm.x-position.linear.x,lm.y-position.linear.y, 1.8-position.linear.z);
-//     // update if there is a NaN
-//     while ((diff[0] != diff[0]) || (diff[1] != diff[1]))
-//     {
-// 	ROS_INFO("Not a valid coordinate: %f, %f, %f", diff[0], diff[1], diff[2]);
-//         diff = tf::Vector3(lm.x-position.linear.x,lm.y-position.linear.y,1.8-position.linear.z);
-// 	loop_rate.sleep();
-// 	ros::spinOnce();
-//     }
-//     int count = 0;
-//     while ((std::abs(diff[0]) > 0.5) || (std::abs(diff[1]) > 0.5)|| (std::abs(diff[2]) > 0.5))
-//     {
-// 	if (ros::Time::now() - start_time > ros::Duration(5))
-// 	{
-// 	    ROS_INFO("CANCEL GOTO");
-// 	    return;
-// 	}
-// 	++count;
-// 	GoTo(lm);
-// 	loop_rate.sleep();
-// 	ros::spinOnce();
-//         diff = tf::Vector3(lm.x-position.linear.x, lm.y-position.linear.y,1.8-position.linear.z);
-// 	ros::spinOnce();
-// 	ROS_INFO("Number calls: %i",count); // if reached correct, should only be called once.
-//     }    
-//     ROS_INFO("Landmark reached");
-// }
 
 void DroneControl::GoTo(const geometry_msgs::Pose2D lm)
 {
@@ -294,7 +206,6 @@ void DroneControl::GoTo(const geometry_msgs::Pose2D lm)
 	    goal.yaw = 0;
 	    send_position_command_client.sendGoal(goal);
 	    send_position_command_client.waitForResult(ros::Duration(10.0)); // should not be that long
-	    ROS_INFO("Command ended");
 	}
 	else
 	{
@@ -324,7 +235,6 @@ void DroneControl::MoveByRel(const geometry_msgs::Twist lm)
 	ROS_INFO("Strange coordinate: %f, %f, %f", lm.linear.x, lm.linear.y, 0.0);
     }
 } 
-
 
 void DroneControl::SetGoal(const geometry_msgs::Pose2D lm)
 {
@@ -417,21 +327,24 @@ void DroneControl::SetMaxControl(double d)
     set_max_control_srv.call(set_control);
 }
 
+void DroneControl::LedAnimation()
+{
+    ardrone_autonomy::LedAnim     led_anim;
+    led_anim.request.freq = 1;
+    led_anim.request.type = 4;
+    led_anim.request.duration = 4;
+    set_led_anim_srv.call(led_anim);
+}
 
 void DroneControl::PickUp()
 {
     ROS_INFO("Pick up!");
     drone::DoPositionCommandGoal goal;
-    led_anim.request.freq = 1;
-    led_anim.request.type = 4;
-    led_anim.request.duration = 4;
     goal.command_id = 2;
-    goal.x =  0;
-    goal.y =  0;
+    goal.x = goal.y = goal.yaw = 0;
     goal.z = -1; 
-    goal.yaw =  0;
+    LedAnimation();
     send_position_command_client.sendGoal(goal);
-    set_led_anim_srv.call(led_anim);
     send_position_command_client.waitForResult(ros::Duration(10.0));
     goal.z =  1; 
     send_position_command_client.sendGoal(goal);
@@ -443,16 +356,11 @@ void DroneControl::Deliver()
 {
     ROS_INFO("Deliver!");
     drone::DoPositionCommandGoal goal;
-    led_anim.request.freq = 1;
-    led_anim.request.type = 4;
-    led_anim.request.duration = 4;
     goal.command_id = 2;
-    goal.x =  0;
-    goal.y =  0;
+    goal.x = goal.y = goal.yaw = 0;
     goal.z = -1; 
-    goal.yaw =  0;
     send_position_command_client.sendGoal(goal);
-    set_led_anim_srv.call(led_anim);
+    LedAnimation();
     send_position_command_client.waitForResult(ros::Duration(10.0));
     goal.z =  1; 
     send_position_command_client.sendGoal(goal);
@@ -470,7 +378,6 @@ void DroneControl::TagInFrame()
 	tag_visible = false;
 }
 
-
 //::::::::::::::::::::::::::::::: MAIN LOOP  ::::::::::::::::::::::::::::::::
 
 void DroneControl::Setup()
@@ -480,8 +387,7 @@ void DroneControl::Setup()
     while (!has_position)
     {
 	try {
-	    // takes some iterations before this works, why?
-	    global_position_listener.lookupTransform("world", "drone", ros::Time(0), world_to_drone);
+	    global_position_listener.lookupTransform("world","drone",ros::Time(0), world_to_drone);
 	    position.linear.x = world_to_drone.getOrigin().getX();
 	    position.linear.y = world_to_drone.getOrigin().getY();
 	    position.linear.z = world_to_drone.getOrigin().getZ();
@@ -503,12 +409,9 @@ void DroneControl::Setup()
 }
 void DroneControl::Loop()
 {
-    // WAIT FOR INITIAL POSITION
     ros::Rate loop_rate(10);
     ROS_INFO("Start Search and Rescue command loop");
-    ros::Duration(1).sleep();
-
-    //HoverLandmark(tag_relative_position.ID);
+    ros::Duration(0.5).sleep();
     while(ros::ok())
     {
 	ros::spinOnce();
@@ -520,7 +423,7 @@ void DroneControl::Loop()
 
 
 
-//::::::::::::::::::::::::::: GOAL EXECUTION ::::::::::::::::::::::::::
+//::::::::::::::::::::::::::: GOAL EXECUTION - ACTION SRV ::::::::::::::::::::::::::
 
 void DroneControl::Goto(const drone::DoPositionCommandGoalConstPtr& pos)
 {
@@ -533,7 +436,7 @@ void DroneControl::Goto(const drone::DoPositionCommandGoalConstPtr& pos)
     position.y = pos->y;
     position.theta = pos->yaw;
     flight_mode = GOTO;
-    //GoToCoordinate(position);    
+    GoTo(position);    
 
     ros::spinOnce();
     drone::DoPositionCommandGoal goal; 
@@ -553,13 +456,7 @@ void DroneControl::Goto(const drone::DoPositionCommandGoalConstPtr& pos)
 	send_position_command_client.waitForResult(ros::Duration(10.0)); // should not be that long
 	ROS_INFO("Command ended");
     }
-    
-
-
-
 }
-
-
 void DroneControl::MoveBy(const drone::DoPositionCommandGoalConstPtr& goal)
 {
     geometry_msgs::Pose2D position;
@@ -651,27 +548,3 @@ void DroneControl::LookForTag(const drone::DoCommandGoalConstPtr& goal)
     result_.succeded = true;
     tag_follow_srv.setSucceeded(result_);
 }
-
-
-
-// //::::::::::::::::::::::::::: GOAL CALLBACKS :::::::::::::::::::::::::::
-
-// //Called once when the goal completes
-// void DroneControl::doneCb(const actionlib::SimpleClientGoalState& state,
-// 			  const drone::DoCommandResultConstPtr& result)
-// {
-//   ROS_INFO("Finished in state [%s]", state.toString().c_str());
-//   ROS_INFO("Answer: %i", result->succeded);
-// }
-
-// // Called once when the goal becomes active
-// void DroneControl::activeCb()
-// {
-//   ROS_INFO("Goal just went active");
-// }
-
-// // Called every time feedback is received for the goal
-// void DroneControl::feedbackCb(const drone::DoCommandFeedbackConstPtr& feedback)
-// {
-//   ROS_INFO("Got Feedback of length %f", feedback->percent_complete);
-// }
