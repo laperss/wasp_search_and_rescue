@@ -35,6 +35,7 @@ add_message_files(DIRECTORY msg
 
 add_service_files(FILES
 #   SendCommand.srv
+StringService.srv
 )
 
 #find_package(catkin REQUIRED genmsg actionlib_msgs actionlib)
@@ -48,7 +49,8 @@ generate_messages(DEPENDENCIES actionlib_msgs  geometry_msgs)
 catkin_package(
   INCLUDE_DIRS
   LIBRARIES apriltag_detector
-  CATKIN_DEPENDS image_transport roscpp sensor_msgs geometry_msgs tf cv_bridge message_runtime std_msgs nodelet apriltags actionlib_msgs
+  CATKIN_DEPENDS image_transport roscpp sensor_msgs geometry_msgs tf cv_bridge message_runtime 
+                 std_msgs nodelet apriltags actionlib_msgs
   DEPENDS Eigen
 )
 
@@ -62,7 +64,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-# set header ans source files
+# Global position header and source files
 set(DRONE_POS_SOURCE_FILES       
   src/DroneGlobalPosition.cpp
 )
@@ -70,7 +72,7 @@ set(DRONE_POS_HEADER_FILES
   src/DroneGlobalPosition.h 
 )
 
-# set header ans source files
+# Control header and source files
 set(DRONE_CONTROL_SOURCE_FILES       
   src/DroneControl.cpp
 )
@@ -78,7 +80,7 @@ set(DRONE_CONTROL_HEADER_FILES
   src/DroneControl.h 
 )
 
-# set header ans source files
+# Plan execution header and source files
 set(DRONE_PLAN_SOURCE_FILES       
   src/DroneExecutePlan.cpp
 )
@@ -94,16 +96,11 @@ add_executable(global_position src/global_position_main.cpp ${DRONE_POS_SOURCE_F
 target_link_libraries(global_position ${catkin_LIBRARIES})
 add_dependencies(global_position global_position tum_ardrone_gencpp)
 
-
-
 add_executable(execute_plan src/drone_execute_plan.cpp ${DRONE_PLAN_SOURCE_FILES} ${DRONE_PLAN_HEADER_FILES})
 target_link_libraries(execute_plan ${catkin_LIBRARIES})
 add_dependencies(execute_plan execute_plan)
 
-
-
-
-
+# Example file
 add_executable(search_and_rescue_test src/search_rescue_test.cpp)
 target_link_libraries(search_and_rescue_test ${catkin_LIBRARIES})
 add_dependencies(search_and_rescue_test search_and_rescue_test)
