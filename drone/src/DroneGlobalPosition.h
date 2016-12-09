@@ -10,6 +10,7 @@
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/Pose2D.h"
 #include "drone/object_pose.h"
+#include "drone/StringService.h"
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include "AprilTags/TagDetector.h"
@@ -24,7 +25,7 @@ public:
     void Loop();
     static pthread_mutex_t video_bottom_thread;
 private:
-    enum {NONE, FORWARD, DOWN, DONE} stage;
+    enum {NONE, FORWARD, DOWN, SWITCHING} mode;
     ros::NodeHandle n;
     
     // Publishers/subscribers
@@ -35,13 +36,21 @@ private:
 
     // Services
     ros::ServiceClient  toggleCam_srv;
+    ros::ServiceServer  takephoto_srv;
+    ros::ServiceServer  change_camera_setting;
     std_srvs::Empty     toggleCam_srv_srvs;
 
     // Functions
     void UpdatePosition();
     void BroadcastPosition();
+    void ToggleCam();
     void BroadcastLandmark(drone::object_pose  state);
     void UpdateLandmark(drone::object_pose     state);
+
+    // Service functions
+    bool TakePhoto(std_srvs::Empty::Request&, std_srvs::Empty::Response&);
+    bool CameraSetting(drone::StringService::Request& req, drone::StringService::Response& res);
+
 
     // Functions apriltags
     void ImageProcess(cv::Mat& image_gray);
@@ -57,8 +66,11 @@ private:
     geometry_msgs::Twist PTAM_latest_observed;  // position relative to the latest observed landmark
     drone::object_pose   latest_observed_position;  // position relative to the landmark at latest observation
 
+    bool   look_up;
+    bool   switch_cam_on;
     bool   landmark_found; 
     bool   landmark_visible; 
+    bool   save_next_image;
     int    latest_landmark;
 
     // Variables  apriltags
@@ -83,6 +95,9 @@ private:
     std::string command_channel;
     std::string tag_channel;
     std::string bottomcam_channel;
-    std::string togglecam_channel;
+    std::string switchcam_on_channel;
+    std::string switchcam_off_channel;
+    std::string change_camera_channel;
+    std::string takephoto_channel;
 
 };
