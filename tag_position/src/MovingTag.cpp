@@ -11,8 +11,8 @@ MovingTag::MovingTag():
     name_space = n.getNamespace();
     n.getParam("ID", id);
     // subscriber
-    pos_sub = n.subscribe("/amcl_pos", 1,&MovingTag::PositionCallback,this);
-    
+    ROS_INFO("SUBSCRIBE TO amcl_pose");
+    pos_sub = n.subscribe("/amcl_pose", 1,&MovingTag::PositionCallback,this);
 }
 
 void MovingTag::AddTag()
@@ -52,6 +52,9 @@ void MovingTag::Broadcast()
 
 void MovingTag::PositionCallback(geometry_msgs::PoseWithCovarianceStamped msg)
 {
+    if(!has_position)
+	has_position = true;
+    ROS_INFO("Position callback");
     position = msg.pose.pose;
     UpdateTag(msg.pose.pose);
 }

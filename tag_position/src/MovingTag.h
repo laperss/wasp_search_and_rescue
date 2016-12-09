@@ -17,6 +17,7 @@ public:
 private:
     ros::NodeHandle n;
     ros::Subscriber pos_sub;
+    ros::Subscriber test_sub;
 
     std::string name;
     std::string name_space;
@@ -30,6 +31,6 @@ private:
 
     void UpdateTag(geometry_msgs::Pose pose);
     void AddTag();
-    void PositionCallback(geometry_msgs::PoseWithCovarianceStamped);
+    void PositionCallback(const geometry_msgs::PoseWithCovarianceStamped);
 
 };
