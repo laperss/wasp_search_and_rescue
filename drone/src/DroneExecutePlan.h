@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <map>
+#include <string>
 #include <drone/DoCommandAction.h>         
 #include <drone/DoPositionCommandAction.h>
 #include <actionlib/client/simple_action_client.h>
@@ -13,6 +14,13 @@ typedef actionlib::SimpleActionClient<drone::DoPositionCommandAction> SendPositi
 typedef actionlib::SimpleActionClient<drone::DoCommandAction>         SendCommandClient; 
 
 
+ /**
+ *  This file is a part the ardrone-search-and-rescue code 
+ *  and is written to work together with the tum_ardrone package.
+ *  Linnea Persson <laperss@kth.se> (KTH Royal Institute of Technology)
+ *  Code available at <https://github.com/laperss/ardrone_search_and_rescue>.
+ */
+
 class DroneExecutePlan
 {
 public:
@@ -22,6 +30,7 @@ public:
     enum action_modes{AVAILABLE, BUSY, FINISHED} action_mode;
     struct Command {
 	std::string name;
+	std::string position;
 	int id;
 	std::map<std::string, std::string> param;
 	double dispatch_time;
@@ -39,11 +48,10 @@ private:
     SendPositionCommandClient    send_moveby;
     SendCommandClient            send_deliver;
     SendCommandClient            send_pickup;
-
+    SendCommandClient            send_tag_follow;
 
     drone::DoCommandGoal            goal;
     drone::DoPositionCommandGoal    position_goal;
-
 
     // funcitons
     void DoAction(const Command& command);
