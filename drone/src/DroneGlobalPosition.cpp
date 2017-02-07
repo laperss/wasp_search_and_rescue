@@ -41,15 +41,13 @@ GlobalPosition::GlobalPosition() :
     landmark_found(false)
 {
     // Names of the channels
-    command_channel        = n.resolveName("tum_ardrone/com");
-    dronepose_channel      = n.resolveName("ardrone/predictedPose");
-    globalpos_channel      = n.resolveName("ardrone/global_position");
-    tag_channel            = n.resolveName("drone/observed_tags");
+    command_channel        = n.resolveName("/tum_ardrone/com");
+    dronepose_channel      = n.resolveName("/ardrone/predictedPose");
+    globalpos_channel      = n.resolveName("/ardrone/global_position");
+    tag_channel            = n.resolveName("/drone/observed_tags");
     bottomcam_channel      = n.resolveName("/ardrone/bottom/image_raw");
-    change_camera_channel  = n.resolveName("ardrone/togglecam");
-    switchcam_on_channel   = n.resolveName("drone/switchcam_on");
-    switchcam_off_channel  = n.resolveName("drone/switchcam_off");
-    takephoto_channel      = n.resolveName("drone/takephoto");
+    change_camera_channel  = n.resolveName("/ardrone/togglecam");
+    takephoto_channel      = n.resolveName("/drone/takephoto");
 
     ROS_INFO("Init GlobalPosition()");
     m_tagDetector     = new AprilTags::TagDetector(m_tagCodes);
@@ -96,6 +94,7 @@ void GlobalPosition::UpdateLandmark(drone::object_pose state)
 		 state.ID, state.pose.linear.z, state.pose.linear.y, state.pose.linear.x);
 	ROS_INFO("Update global position");
     }
+    ROS_INFO("VISIBLE TAG: %i", state.ID);
     latest_observed_position = state;
     PTAM_latest_observed =  PTAM_position;
 
@@ -112,7 +111,6 @@ void GlobalPosition::PositionCallback(const tum_ardrone::filter_state state)
 
 }
 void GlobalPosition::ImageCallback(const sensor_msgs::ImageConstPtr& msg){
-    ROS_INFO("Image callback");
     cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
     cv::cvtColor(cv_ptr->image, image_gray, CV_BGR2GRAY);
     ImageProcess(image_gray);
@@ -120,7 +118,6 @@ void GlobalPosition::ImageCallback(const sensor_msgs::ImageConstPtr& msg){
 
 void GlobalPosition::ImageProcess(cv::Mat& image_gray) 
 {
-    //cv::cvtColor(image, image_gray, CV_BGR2GRAY);
     vector<AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
     if (save_next_image == true)
     {
@@ -136,7 +133,6 @@ void GlobalPosition::ToggleCam()
 {
     toggleCam_srv.call(toggleCam_srv_srvs);
     look_up = !look_up;
-    ROS_INFO("Look forward: %i", look_up);
 }
 
 
@@ -208,7 +204,6 @@ void GlobalPosition::BroadcastPosition()
     map_to_drone.setOrigin(tf::Vector3(PTAM_position.linear.x,PTAM_position.linear.y,PTAM_position.linear.z));
 
     br1.sendTransform(tf::StampedTransform(map_to_drone, ros::Time::now(), "PTAM_map",   "PTAM_drone"));
-    //br2.sendTransform(tf::StampedTransform(transform.inverse(), ros::Time::now(), "PTAM_drone", "PTAM_latest_tag"));
 }
 
 
@@ -235,23 +230,20 @@ void GlobalPosition::Loop()
     ros::Rate loop_rate(10);
     look_up = true;
     ROS_INFO("Start global positioning loop");
-    mode = SWITCHING;
+    //mode = SWITCHING;
     switch_cam_on = false;
     while (n.ok())
     {
-	ROS_INFO("Inside global position");
 	BroadcastLandmark(latest_observed_position);
 	BroadcastPosition();
 
 	if (mode == SWITCHING)
 	{
-	    if (ros::Time::now() - lastLookDown > ros::Duration(0.6))
+	    if (ros::Time::now() - lastLookDown > ros::Duration(0.8))
 	    {
-		ROS_INFO("Look down");
 	        ToggleCam();
 		ros::Duration(0.15).sleep(); // It takes time for camera to switch
-		ros::spinOnce();
-		ROS_INFO("Look up");
+		ros::spinOnce();   // why is callcback only here??
 		ToggleCam();
 		lastLookDown = ros::Time::now();
 	    }
@@ -288,11 +280,12 @@ void GlobalPosition::Loop()
 	//     BroadcastLandmark(latest_observed_position);
 	//     BroadcastPosition();	
 	// }
-	ros::spinOnce;
+	ros::spinOnce();
 	loop_rate.sleep();
 	BroadcastLandmark(latest_observed_position);
 	BroadcastPosition();
     }
+
     ROS_INFO("End global positioning loop");
 
 }
