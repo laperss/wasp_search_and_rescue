@@ -21,7 +21,7 @@ $ roslaunch drone drone_sar.launch
 ```
 Run PDDL to AR.Drone interface node:
 ```bash
-$ roslaunch drone execute_plan
+$ rosrun drone execute_plan
 ```
 Run planner:
 ```bash
