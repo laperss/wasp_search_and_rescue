@@ -7,6 +7,7 @@ The planner interface calls the controller functions and interfaces with ROSPlan
 To be able to run this code, the version of the TUM Ar.Drone package found [here](https://github.com/laperss/tum_ardrone) needs to be installed. 
 
 A video demonstrating the implementation:
+
 [![Search and Rescue Video](https://img.youtube.com/vi/BVbvRh_gY-0/0.jpg)](https://www.youtube.com/watch?v=BVbvRh_gY-0) 
 
 ### [Global positioning node](https://github.com/laperss/wasp_search_and_rescue/blob/master/drone/src/DroneGlobalPosition.h)
