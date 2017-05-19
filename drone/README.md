@@ -12,7 +12,7 @@ A video demonstrating the implementation:
 
 ### [Global positioning node](https://github.com/laperss/wasp_search_and_rescue/blob/master/drone/src/DroneGlobalPosition.h)
 
-This node updates the estimate of the current position. There are two ways that this is done: 
+This node updates the estimate of the current position. This is done in two ways: 
 
 1. Parallel tracking and mapping (PTAM) through the TUM package. 
 2. Position updates from known position, e.g., apriltags that the drone observes. 
@@ -41,5 +41,4 @@ This forked version, required to run the package, can be found at: https://githu
 
 ROSplan was used for the planner system, and in order to use the control nodes together with the AR.Drone an interface node was required.
 ROSPlan sends out one command at a time, and it needs feedback when an action is complete in order to send out the next action. 
-This was achieved using the actionlib package. This node was successfully implemented with a simple drone planner, which can be found here
-The challenge here was to integrate the control node with the TUM package in a way so that we could get feedback from the functions implemented there. 
+This was achieved using the actionlib package. This node was successfully implemented with a simple drone planner, which can be found [here](wasp_search_and_rescue/planning/scripts/add_knowledge_linnea.py).
