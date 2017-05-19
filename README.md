@@ -5,7 +5,7 @@ The remaining packages contains code for
 [running the PDDL planner](https://github.com/laperss/wasp_search_and_rescue/tree/master/planning) 
 and [adding apriltag position broadcasters](https://github.com/laperss/wasp_search_and_rescue/tree/master/tag_position).
 
-This repository contains code for controlling the drone. The main difficulty was the positioning of the drone, which in the end was solved with PTAM and Apriltags. Decision making was implemented with PDDL.  
+This repository only contains code for controlling the _drone_. The main difficulty with the drone was the positioning, which in the end was solved with PTAM and Apriltags. Decision making was implemented with PDDL.  
 
 ### Video demonstration
 A video demonstrating the implementation:
