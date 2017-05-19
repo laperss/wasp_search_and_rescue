@@ -23,7 +23,7 @@ Run PDDL to AR.Drone interface node:
 ```bash
 $ rosrun drone execute_plan
 ```
-Run planner:
+Run planner (example file included in planning/scripts):
 ```bash
 $ ~/catkin_ws/src/wasp_search_and_rescue/planning/run_planner.sh
 ```
