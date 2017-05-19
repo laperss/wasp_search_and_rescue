@@ -6,6 +6,9 @@ The controller defines a set of services for the drone.
 The planner interface calls the controller functions and interfaces with ROSPlan and PDDL.
 To be able to run this code, the version of the TUM Ar.Drone package found [here](https://github.com/laperss/tum_ardrone) needs to be installed. 
 
+
+[![Search and Rescue Video](https://img.youtube.com/vi/BVbvRh_gY-0/0.jpg)](https://www.youtube.com/watch?v=BVbvRh_gY-0) 
+
 ### [Global positioning node](https://github.com/laperss/wasp_search_and_rescue/blob/master/drone/src/DroneGlobalPosition.h)
 
 This node updates the estimate of the current position. There are two ways that this is done: 
