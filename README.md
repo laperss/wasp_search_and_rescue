@@ -8,7 +8,8 @@ and [adding apriltag position broadcasters](https://github.com/laperss/wasp_sear
 
 ### Implementaiton
 This code has been successfully run on Ubuntu 14.04 running [ROS Indigo](http://wiki.ros.org/indigo). 
-The hardware consisted of a Tutlebot 2 and a Parrot AR.Drone.
+The hardware consisted of a Tutlebot 2 and a Parrot AR.Drone. 
+The experiments were done in a room with Apriltags taped to the floor. 
 
 ### Dependencies
 - The version of TUM AR.Drone found [here](https://github.com/laperss/tum_ardrone) 
