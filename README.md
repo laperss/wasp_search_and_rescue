@@ -5,6 +5,13 @@ The remaining packages contains code for
 [running the PDDL planner](https://github.com/laperss/wasp_search_and_rescue/tree/master/planning) 
 and [adding apriltag position broadcasters](https://github.com/laperss/wasp_search_and_rescue/tree/master/tag_position).
 
+This repository contains code for controlling the drone. The main difficulty was the positioning of the drone, which in the end was solved with PTAM and Apriltags. Decision making was implemented with PDDL.  
+
+### Video demonstration
+A video demonstrating the implementation:
+
+[![Search and Rescue Video](https://img.youtube.com/vi/BVbvRh_gY-0/0.jpg)](https://www.youtube.com/watch?v=BVbvRh_gY-0) 
+
 
 ### Implementaiton/Run code
 This code has been successfully run on Ubuntu 14.04 running [ROS Indigo](http://wiki.ros.org/indigo). 
@@ -34,12 +41,6 @@ $ ~/catkin_ws/src/wasp_search_and_rescue/planning/run_planner.sh
 - [ROSPlan](https://github.com/KCL-Planning/ROSPlan)
 - [ROS Actionlib](https://github.com/ros/actionlib)
 - [ROS Apriltags](https://github.com/laperss/apriltags)
-
-### Video demonstration
-A video demonstrating the implementation:
-
-[![Search and Rescue Video](https://img.youtube.com/vi/BVbvRh_gY-0/0.jpg)](https://www.youtube.com/watch?v=BVbvRh_gY-0) 
-
 
 ## Drone Package
 The drone package has three parts; the positioning, the controller, and the planner interface. 
