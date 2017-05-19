@@ -4,7 +4,7 @@ The positioning keeps track of the position of the UAV in a global frame of refe
 It is realized using a combination of PTAM and Apriltag localization.
 The controller defines a set of services for the drone. 
 The planner interface calls the controller functions and interfaces with ROSPlan and PDDL.
-To be able to run this code, the version of the TUM Ar.Drone package found [here](https://github.com/laperss/tum_ardrone) needs to be installed. 
+To be able to run this code, the version of the TUM AR.Drone package found [here](https://github.com/laperss/tum_ardrone) needs to be installed. 
 
 A video demonstrating the implementation:
 
