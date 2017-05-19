@@ -31,7 +31,7 @@ $ ~/catkin_ws/src/wasp_search_and_rescue/planning/run_planner.sh
 
 ### Dependencies
 - The version of TUM AR.Drone found [here](https://github.com/laperss/tum_ardrone) 
-- [ROSPLan](https://github.com/KCL-Planning/ROSPlan)
+- [ROSPlan](https://github.com/KCL-Planning/ROSPlan)
 - [ROS Actionlib](https://github.com/ros/actionlib)
 - [ROS Apriltags](https://github.com/laperss/apriltags)
 
