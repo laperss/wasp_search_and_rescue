@@ -6,10 +6,28 @@ The remaining packages contains code for
 and [adding apriltag position broadcasters](https://github.com/laperss/wasp_search_and_rescue/tree/master/tag_position).
 
 
-### Implementaiton
+### Implementaiton/Run code
 This code has been successfully run on Ubuntu 14.04 running [ROS Indigo](http://wiki.ros.org/indigo). 
 The hardware consisted of a Tutlebot 2 and a Parrot AR.Drone. 
 The experiments were done in a room with Apriltags taped to the floor. The position of these tags were calculated by the Turtlebot, so no so no search was made by the drone. 
+
+To start broadcasting Apriltag positions: 
+```bash
+$ roslaunch tag_position add_tags.launch
+```
+Start drone in second terminal (you might want to run PTAM manually after this step):
+```bash
+$ roslaunch drone drone_sar.launch
+```
+Run PDDL to AR.Drone interface node:
+```bash
+$ roslaunch drone execute_plan
+```
+Run planner:
+```bash
+$ ~/catkin_ws/src/wasp_search_and_rescue/planning/run_planner.sh
+```
+
 
 ### Dependencies
 - The version of TUM AR.Drone found [here](https://github.com/laperss/tum_ardrone) 
