@@ -23,7 +23,7 @@
 #include <actionlib/server/simple_action_server.h>  
 #include <drone/DoCommandAction.h>           
 #include <drone/DoPositionCommandAction.h>
-#include "rosplan_action_interface/RPActionInterface.h"
+//#include "rosplan_action_interface/RPActionInterface.h"
 
 typedef actionlib::SimpleActionClient<drone::DoPositionCommandAction> SendPositionCommandClient; 
 typedef actionlib::SimpleActionClient<drone::DoCommandAction>         SendCommandClient; 

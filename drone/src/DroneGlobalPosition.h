@@ -13,8 +13,8 @@
 #include "drone/StringService.h"
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
-#include "AprilTags/TagDetector.h"
-#include "AprilTags/Tag36h11.h"
+//#include "AprilTags/TagDetector.h"
+//#include "AprilTags/Tag36h11.h"
 #include "tum_ardrone/filter_state.h"
 //#include "tum_ardrone/SetCommand.h"
 
@@ -50,13 +50,7 @@ private:
     // Service functions
     bool TakePhoto(std_srvs::Empty::Request&, std_srvs::Empty::Response&);
     bool CameraSetting(drone::StringService::Request& req, drone::StringService::Response& res);
-
-
-    // Functions apriltags
-    void ImageProcess(cv::Mat& image_gray);
-    void SaveImage(cv::Mat& image_gray);
-    void GetApriltagLocation(const AprilTags::TagDetection& detection);
-
+    
     // Callbacks
     void PositionCallback(const tum_ardrone::filter_state state);
     void ImageCallback(const sensor_msgs::ImageConstPtr&  msg);
@@ -74,8 +68,6 @@ private:
     int    latest_landmark;
 
     // Variables  apriltags
-    AprilTags::TagDetector*          m_tagDetector;
-    AprilTags::TagCodes              m_tagCodes;
     image_transport::ImageTransport  it;
     int    m_width;     // image size in pixels
     int    m_height;

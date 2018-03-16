@@ -5,7 +5,7 @@ project(drone)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  apriltags
+#  apriltags
   image_transport
   roscpp
   sensor_msgs
@@ -21,9 +21,9 @@ find_package(catkin REQUIRED COMPONENTS
   genmsg
   actionlib_msgs
   actionlib
-  rosplan_dispatch_msgs
-  rosplan_knowledge_msgs
-  rosplan_planning_system
+#  rosplan_dispatch_msgs
+#  rosplan_knowledge_msgs
+#  rosplan_planning_system
   diagnostic_msgs
 )
 
@@ -34,8 +34,8 @@ add_message_files(DIRECTORY msg
 )
 
 add_service_files(FILES
-#   SendCommand.srv
-StringService.srv
+  SendCommand.srv
+  StringService.srv
 )
 
 #find_package(catkin REQUIRED genmsg actionlib_msgs actionlib)
@@ -48,9 +48,9 @@ generate_messages(DEPENDENCIES actionlib_msgs  geometry_msgs)
 
 catkin_package(
   INCLUDE_DIRS
-  LIBRARIES apriltag_detector
+#  LIBRARIES apriltag_detector
   CATKIN_DEPENDS image_transport roscpp sensor_msgs geometry_msgs tf cv_bridge message_runtime 
-                 std_msgs nodelet apriltags actionlib_msgs
+                 std_msgs nodelet actionlib_msgs # apriltag
   DEPENDS Eigen
 )
 
@@ -80,13 +80,6 @@ set(DRONE_CONTROL_HEADER_FILES
   src/DroneControl.h 
 )
 
-# Plan execution header and source files
-set(DRONE_PLAN_SOURCE_FILES       
-  src/DroneExecutePlan.cpp
-)
-set(DRONE_PLAN_HEADER_FILES    
-  src/DroneExecutePlan.h 
-)
 
 add_executable(control src/control_drone_main.cpp ${DRONE_CONTROL_SOURCE_FILES} ${DRONE_CONTROL_HEADER_FILES})
 target_link_libraries(control ${catkin_LIBRARIES})
@@ -95,10 +88,6 @@ add_dependencies(control control tum_ardrone_gencpp)
 add_executable(global_position src/global_position_main.cpp ${DRONE_POS_SOURCE_FILES} ${DRONE_POS_HEADER_FILES})
 target_link_libraries(global_position ${catkin_LIBRARIES})
 add_dependencies(global_position global_position tum_ardrone_gencpp)
-
-add_executable(execute_plan src/drone_execute_plan.cpp ${DRONE_PLAN_SOURCE_FILES} ${DRONE_PLAN_HEADER_FILES})
-target_link_libraries(execute_plan ${catkin_LIBRARIES})
-add_dependencies(execute_plan execute_plan)
 
 # Example file
 add_executable(search_and_rescue_test src/search_rescue_test.cpp)

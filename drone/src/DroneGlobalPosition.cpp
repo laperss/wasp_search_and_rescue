@@ -17,17 +17,7 @@
 
 using namespace std;
 
-void wRo_to_euler(const Eigen::Matrix3d& wRo, double& yaw, double& pitch, double& roll) {
-    yaw = standardRad(atan2(wRo(1,0), wRo(0,0)));
-    double c = cos(yaw);
-    double s = sin(yaw);
-    pitch = standardRad(atan2(-wRo(2,0), wRo(0,0)*c + wRo(1,0)*s));
-    roll  = standardRad(atan2(wRo(0,2)*s - wRo(1,2)*c, -wRo(0,1)*s + wRo(1,1)*c));
-}
-
 GlobalPosition::GlobalPosition() : 
-    m_tagDetector(NULL),
-    m_tagCodes(AprilTags::tagCodes36h11),
     // UPDATE VALUES FOR BOTTOM CAM??
     m_width(640),
     m_height(360),
@@ -50,7 +40,6 @@ GlobalPosition::GlobalPosition() :
     takephoto_channel      = n.resolveName("/drone/takephoto");
 
     ROS_INFO("Init GlobalPosition()");
-    m_tagDetector     = new AprilTags::TagDetector(m_tagCodes);
     bottomcam_sub     = it.subscribe(bottomcam_channel, 1, &GlobalPosition::ImageCallback,this);
     ptam_sub          = n.subscribe(dronepose_channel, 1, &GlobalPosition::PositionCallback,this);
 
@@ -84,21 +73,6 @@ bool GlobalPosition::CameraSetting(drone::StringService::Request& req, drone::St
 }
 
 
-void GlobalPosition::UpdateLandmark(drone::object_pose state)
-{
-    if (landmark_found == false || latest_landmark != state.ID)
-    {
-	landmark_found = true;
-        latest_landmark = state.ID;
-	ROS_INFO("Tag %i: (%f,%f,%f)", 
-		 state.ID, state.pose.linear.z, state.pose.linear.y, state.pose.linear.x);
-	ROS_INFO("Update global position");
-    }
-    ROS_INFO("VISIBLE TAG: %i", state.ID);
-    latest_observed_position = state;
-    PTAM_latest_observed =  PTAM_position;
-
-}
 void GlobalPosition::PositionCallback(const tum_ardrone::filter_state state)
 {
     PTAM_position.linear.x = state.x;
@@ -113,20 +87,6 @@ void GlobalPosition::PositionCallback(const tum_ardrone::filter_state state)
 void GlobalPosition::ImageCallback(const sensor_msgs::ImageConstPtr& msg){
     cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
     cv::cvtColor(cv_ptr->image, image_gray, CV_BGR2GRAY);
-    ImageProcess(image_gray);
-}
-
-void GlobalPosition::ImageProcess(cv::Mat& image_gray) 
-{
-    vector<AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
-    if (save_next_image == true)
-    {
-	SaveImage(image_gray);
-	save_next_image = false;
-    }
-    for (int i=0; i<detections.size(); i++) {
-      GetApriltagLocation(detections[i]);
-    }
 }
 
 void GlobalPosition::ToggleCam()
@@ -142,43 +102,7 @@ bool GlobalPosition::TakePhoto(std_srvs::Empty::Request&, std_srvs::Empty::Respo
 }
 
 unsigned int image_count = 0;
-void GlobalPosition::SaveImage(cv::Mat& image_gray)
-{
-    ++image_count;
-    ostringstream ss;
-    ss << "image_gray" << image_count << ".jpg";
-    string im = ss.str();
-    imwrite(im, image_gray);
-}
 
-void GlobalPosition::GetApriltagLocation(const AprilTags::TagDetection& detection) {
-    Eigen::Vector3d translation;
-    Eigen::Matrix3d rotation;
-    // translation in object frame (x forward, y left,  z up)
-    // rotation in camera frame    (z forward, x right, y down) 
-    detection.getRelativeTranslationRotation(m_tagSize, m_fx, m_fy, m_px, m_py,
-                                             translation, rotation);
-    Eigen::Matrix3d F;
-    F <<
-      1,  0,  0,
-      0, -1,  0,
-      0,  0,  1;
-    Eigen::Matrix3d fixed_rot = F*rotation;
-    double yaw, pitch, roll;
-    wRo_to_euler(fixed_rot, yaw, pitch, roll);
-    float orientation;
-    orientation = detection.getXYOrientation();
-    drone::object_pose location;
-    location.ID = detection.id;
-    location.pose.linear.x = translation(0);
-    location.pose.linear.y = translation(1);
-    location.pose.linear.z = translation(2);
-    location.pose.angular.x = 0 ;
-    location.pose.angular.y = 0;
-    location.pose.angular.z = orientation;
-    tags_pub.publish(location);
-    UpdateLandmark(location);
-  }
 
 void GlobalPosition::BroadcastPosition()
 {
@@ -206,21 +130,6 @@ void GlobalPosition::BroadcastPosition()
     br1.sendTransform(tf::StampedTransform(map_to_drone, ros::Time::now(), "PTAM_map",   "PTAM_drone"));
 }
 
-
-
-void GlobalPosition::BroadcastLandmark(drone::object_pose state) {
-    static tf::TransformBroadcaster br;
-    tf::Transform transform;
-    transform.setOrigin(tf::Vector3(state.pose.linear.y, -state.pose.linear.z, state.pose.linear.x));
-
-    tf::Quaternion quat;
-    quat.setRPY(-state.pose.angular.x, state.pose.angular.y, -state.pose.angular.z);
-    transform.setRotation(quat);
-    ostringstream ss;
-    ss << "id_" << state.ID;
-    string name = ss.str();
-    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), name , "last_observed_tag"));
-}
  
 void GlobalPosition::Loop()
 {
@@ -234,55 +143,10 @@ void GlobalPosition::Loop()
     switch_cam_on = false;
     while (n.ok())
     {
-	BroadcastLandmark(latest_observed_position);
 	BroadcastPosition();
-
-	if (mode == SWITCHING)
-	{
-	    if (ros::Time::now() - lastLookDown > ros::Duration(0.8))
-	    {
-	        ToggleCam();
-		ros::Duration(0.15).sleep(); // It takes time for camera to switch
-		ros::spinOnce();   // why is callcback only here??
-		ToggleCam();
-		lastLookDown = ros::Time::now();
-	    }
-	    // toggleCam_srv.call(toggleCam_srv_srvs);
-	    // look_up = false;
-	    // ros::Duration(0.15).sleep(); // It takes time for camera to switch
-	    // ros::spinOnce();
-	    // ROS_INFO("Look up");
-	    // toggleCam_srv.call(toggleCam_srv_srvs);
-	    // look_up = true;
-	    // lastLookUp = ros::Time::now();
-	    // while(((ros::Time::now() - lastLookUp) < ros::Duration(0.8)) && mode == SWITCHING)
-	    // {
-	    // 	ros::spinOnce();
-	    // 	loop_rate.sleep();
-	    // 	BroadcastLandmark(latest_observed_position);
-	    // 	BroadcastPosition();
-	    // }
-	}
-	if(mode == DOWN)
-	{
-	    if (look_up)
-		ToggleCam();
-	}
-	if(mode == FORWARD)
-	{
-	    if (!look_up)
-		ToggleCam();
-	}
-	// else
-	// {
-	//     ros::spinOnce;
-	//     loop_rate.sleep();
-	//     BroadcastLandmark(latest_observed_position);
-	//     BroadcastPosition();	
-	// }
+        
 	ros::spinOnce();
 	loop_rate.sleep();
-	BroadcastLandmark(latest_observed_position);
 	BroadcastPosition();
     }
 
