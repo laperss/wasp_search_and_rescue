@@ -86,4 +86,4 @@ To use the domain file of your choice, edit the line
 ```
 	<param name="/rosplan/domain_path" value="$(find drone_planning)/planner/domain_linnea.pddl" />
 ```
-in the file `wasp_search_and_rescue/planning/launch/start_planning_system.launch`. For reference, the domain file we used can be found in the wiki. 
+in the file [wasp_search_and_rescue/planning/launch/start_planning_system.launch](https://github.com/laperss/wasp_search_and_rescue/blob/master/planning/launch/start_planning_system.launch). For reference, the domain file we used can be found in the [wiki](https://github.com/laperss/wasp_search_and_rescue/wiki/domain_rescue.pddl). 
