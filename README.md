@@ -81,3 +81,9 @@ This forked version, required to run the package, can be found at: https://githu
 ROSplan was used for the planner system, and in order to use the control nodes together with the AR.Drone an interface node was required.
 ROSPlan sends out one command at a time, and it needs feedback when an action is complete in order to send out the next action. 
 This was achieved using the actionlib package. This node was successfully implemented with a simple drone planner, which can be found [here](wasp_search_and_rescue/planning/scripts/add_knowledge_linnea.py).
+
+To use the domain file of your choice, edit the line 
+```
+	<param name="/rosplan/domain_path" value="$(find drone_planning)/planner/domain_linnea.pddl" />
+```
+in the file `wasp_search_and_rescue/planning/launch/start_planning_system.launch`. For reference, the domain file we used can be found in the wiki. 
